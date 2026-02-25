@@ -23,6 +23,8 @@ interface ActionItem {
   id: string;
   position: number;
   title: string;
+  description?: string | null;
+  due_date?: string | null;
   logs?: ActivityLog[];
   logCount?: number;
   lastLogDate?: string;
@@ -32,6 +34,7 @@ interface SubGoal {
   id: string;
   position: number;
   title: string;
+  description?: string | null;
   actions: ActionItem[];
 }
 
@@ -59,6 +62,8 @@ export default function GoalGrid() {
   const [showSubGoalModal, setShowSubGoalModal] = useState(false);
   const [showDescriptionModal, setShowDescriptionModal] = useState(false);
   const [descriptionForm, setDescriptionForm] = useState('');
+  const [draggingSubGoal, setDraggingSubGoal] = useState<SubGoal | null>(null);
+  const [draggingAction, setDraggingAction] = useState<{ subGoalId: string; action: ActionItem } | null>(null);
 
   // Log form state
   const [logForm, setLogForm] = useState({
@@ -69,6 +74,40 @@ export default function GoalGrid() {
     metric_unit: '',
     mood: ''
   });
+
+  const buildSubGoalPayload = (
+    subGoal: SubGoal,
+    overrides?: Partial<{ title: string; description: string | null; position: number }>
+  ) => ({
+    title: overrides?.title ?? subGoal.title,
+    description: overrides?.description ?? subGoal.description ?? null,
+    position: overrides?.position ?? subGoal.position,
+  });
+
+  const buildActionPayload = (
+    action: ActionItem,
+    overrides?: Partial<{ title: string; description: string | null; position: number; due_date: string | null }>
+  ) => ({
+    title: overrides?.title ?? action.title,
+    description: overrides?.description ?? action.description ?? null,
+    position: overrides?.position ?? action.position,
+    due_date: overrides?.due_date ?? action.due_date ?? null,
+  });
+
+  const findSubGoalById = (subGoalId: string) => {
+    return goal?.subGoals.find((sg) => sg.id === subGoalId) || null;
+  };
+
+  const findActionById = (actionId: string) => {
+    if (!goal) return null;
+    for (const subGoal of goal.subGoals) {
+      const action = subGoal.actions.find((a) => a.id === actionId);
+      if (action) {
+        return { subGoal, action };
+      }
+    }
+    return null;
+  };
 
   useEffect(() => {
     if (goalId) {
@@ -123,8 +162,11 @@ export default function GoalGrid() {
   };
 
   const handleUpdateSubGoal = async (id: string, title: string) => {
+    const subGoal = findSubGoalById(id);
+    if (!subGoal) return;
+
     try {
-      await api.updateSubGoal(id, { title });
+      await api.updateSubGoal(id, buildSubGoalPayload(subGoal, { title }));
       loadGoal();
     } catch (err) {
       setError((err as Error).message);
@@ -132,8 +174,12 @@ export default function GoalGrid() {
   };
 
   const handleUpdateAction = async (id: string, title: string) => {
+    const result = findActionById(id);
+    if (!result) return;
+    const { action } = result;
+
     try {
-      await api.updateAction(id, { title });
+      await api.updateAction(id, buildActionPayload(action, { title }));
       loadGoal();
     } catch (err) {
       setError((err as Error).message);
@@ -152,6 +198,56 @@ export default function GoalGrid() {
     try {
       const logs = await api.getActionLogs(action.id);
       setActionLogs(logs);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  const handleSubGoalDragStart = (subGoal: SubGoal) => {
+    setDraggingSubGoal(subGoal);
+  };
+
+  const handleSubGoalDragEnd = () => {
+    setDraggingSubGoal(null);
+  };
+
+  const handleSubGoalDrop = async (targetPosition: number) => {
+    if (!draggingSubGoal || draggingSubGoal.position === targetPosition) {
+      setDraggingSubGoal(null);
+      return;
+    }
+
+    try {
+      await api.reorderSubGoal(draggingSubGoal.id, targetPosition);
+      loadGoal();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  const handleActionDragStart = (subGoalId: string, action: ActionItem) => {
+    setDraggingAction({ subGoalId, action });
+  };
+
+  const handleActionDragEnd = () => {
+    setDraggingAction(null);
+  };
+
+  const handleActionDrop = async (subGoalId: string, targetPosition: number) => {
+    if (!draggingAction || draggingAction.subGoalId !== subGoalId) {
+      setDraggingAction(null);
+      return;
+    }
+
+    const currentAction = draggingAction.action;
+    if (currentAction.position === targetPosition) {
+      setDraggingAction(null);
+      return;
+    }
+
+    try {
+      await api.reorderAction(currentAction.id, targetPosition);
+      loadGoal();
     } catch (err) {
       setError((err as Error).message);
     }
@@ -435,6 +531,12 @@ export default function GoalGrid() {
                 }}
                 centerLayout={displaySettings.centerLayout}
                 centerBackdrop={displaySettings.centerBackdrop}
+                onSubGoalDragStart={handleSubGoalDragStart}
+                onSubGoalDrop={handleSubGoalDrop}
+                onSubGoalDragEnd={handleSubGoalDragEnd}
+                onActionDragStart={handleActionDragStart}
+                onActionDrop={handleActionDrop}
+                onActionDragEnd={handleActionDragEnd}
               />
             </div>
 

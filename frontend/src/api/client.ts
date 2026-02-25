@@ -16,13 +16,19 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
     },
   });
 
-  const result: ApiResponse<T> = await response.json();
-
-  if (!result.success) {
-    throw new Error(result.error || 'API request failed');
+  const rawText = await response.text();
+  let parsed: ApiResponse<T>;
+  try {
+    parsed = JSON.parse(rawText);
+  } catch (err) {
+    throw new Error(rawText || 'API response could not be parsed');
   }
 
-  return result.data as T;
+  if (!parsed.success) {
+    throw new Error(parsed.error || 'API request failed');
+  }
+
+  return parsed.data as T;
 }
 
 export const api = {
@@ -55,6 +61,10 @@ export const api = {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
+  reorderSubGoal: (id: string, targetPosition: number) => apiRequest<any>(`/api/subgoals/${id}/reorder`, {
+    method: 'POST',
+    body: JSON.stringify({ targetPosition }),
+  }),
   deleteSubGoal: (id: string) => apiRequest<any>(`/api/subgoals/${id}`, {
     method: 'DELETE',
   }),
@@ -68,6 +78,10 @@ export const api = {
   updateAction: (id: string, data: any) => apiRequest<any>(`/api/actions/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
+  }),
+  reorderAction: (id: string, targetPosition: number) => apiRequest<any>(`/api/actions/${id}/reorder`, {
+    method: 'POST',
+    body: JSON.stringify({ targetPosition }),
   }),
   toggleAction: (id: string) => apiRequest<any>(`/api/actions/${id}/complete`, {
     method: 'PATCH',

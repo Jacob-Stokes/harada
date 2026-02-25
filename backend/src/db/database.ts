@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS primary_goals (
 CREATE TABLE IF NOT EXISTS sub_goals (
   id TEXT PRIMARY KEY,
   primary_goal_id TEXT NOT NULL,
-  position INTEGER NOT NULL CHECK(position >= 1 AND position <= 8),
+  position INTEGER NOT NULL CHECK(position >= 0 AND position <= 8),
   title TEXT NOT NULL,
   description TEXT,
   created_at TEXT DEFAULT (datetime('now')),
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS sub_goals (
 CREATE TABLE IF NOT EXISTS action_items (
   id TEXT PRIMARY KEY,
   sub_goal_id TEXT NOT NULL,
-  position INTEGER NOT NULL CHECK(position >= 1 AND position <= 8),
+  position INTEGER NOT NULL CHECK(position >= 0 AND position <= 8),
   title TEXT NOT NULL,
   description TEXT,
   completed INTEGER DEFAULT 0 CHECK(completed IN (0, 1)),

@@ -32,6 +32,12 @@ interface FullGridViewProps {
   };
   centerLayout: 'single' | 'radial';
   centerBackdrop: 'page' | 'card';
+  onSubGoalDragStart?: (subGoal: SubGoal) => void;
+  onSubGoalDrop?: (targetPosition: number) => void;
+  onSubGoalDragEnd?: () => void;
+  onActionDragStart?: (subGoalId: string, action: ActionItem) => void;
+  onActionDrop?: (subGoalId: string, targetPosition: number) => void;
+  onActionDragEnd?: () => void;
 }
 
 export default function FullGridView({
@@ -48,7 +54,13 @@ export default function FullGridView({
   subGoalColors,
   actionColorSettings,
   centerLayout,
-  centerBackdrop
+  centerBackdrop,
+  onSubGoalDragStart,
+  onSubGoalDrop,
+  onSubGoalDragEnd,
+  onActionDragStart,
+  onActionDrop,
+  onActionDragEnd
 }: FullGridViewProps) {
 
   const getSubGoalAtPosition = (position: number): SubGoal | undefined => {
@@ -57,6 +69,11 @@ export default function FullGridView({
 
   const getColorForPosition = (position: number) => {
     return subGoalColors[position] || '#22c55e';
+  };
+
+  const allowDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
   };
 
   const centerBackgroundClass =
@@ -166,6 +183,16 @@ export default function FullGridView({
         return (
           <div
             onClick={() => onAddSubGoal(subGoalPos)}
+            onDragOver={onSubGoalDrop ? allowDrop : undefined}
+            onDrop={
+              onSubGoalDrop
+                ? (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onSubGoalDrop(subGoalPos);
+                  }
+                : undefined
+            }
             className="bg-yellow-50 border border-yellow-300 p-1 flex items-center justify-center cursor-pointer hover:bg-yellow-100 text-xs h-full"
           >
             <span className="text-yellow-700">+SG{subGoalPos}</span>
@@ -184,6 +211,25 @@ export default function FullGridView({
             color: textColor,
           }}
           onClick={() => onSubGoalClick(subGoal)}
+          draggable={Boolean(onSubGoalDragStart)}
+          onDragStart={(e) => {
+            if (!onSubGoalDragStart) return;
+            e.dataTransfer.effectAllowed = 'move';
+            onSubGoalDragStart(subGoal);
+          }}
+          onDragEnd={() => {
+            onSubGoalDragEnd?.();
+          }}
+          onDragOver={onSubGoalDrop ? allowDrop : undefined}
+          onDrop={
+            onSubGoalDrop
+              ? (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onSubGoalDrop(subGoalPos);
+                }
+              : undefined
+          }
           onContextMenu={(e) => {
             e.preventDefault();
             if (onUpdateSubGoal) {
@@ -274,6 +320,16 @@ export default function FullGridView({
         return (
           <div
             onClick={() => onAddAction(subGoal.id, actionInfo.actionPos)}
+            onDragOver={onActionDrop ? allowDrop : undefined}
+            onDrop={
+              onActionDrop
+                ? (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onActionDrop(subGoal.id, actionInfo.actionPos);
+                  }
+                : undefined
+            }
             className="bg-blue-50 border border-blue-200 p-1 cursor-pointer hover:bg-blue-100 flex items-center justify-center text-xs text-gray-500 h-full"
           >
             +
@@ -293,6 +349,25 @@ export default function FullGridView({
               }
             }
           }}
+          draggable={Boolean(onActionDragStart)}
+          onDragStart={(e) => {
+            if (!onActionDragStart) return;
+            e.dataTransfer.effectAllowed = 'move';
+            onActionDragStart(subGoal.id, action);
+          }}
+          onDragEnd={() => {
+            onActionDragEnd?.();
+          }}
+          onDragOver={onActionDrop ? allowDrop : undefined}
+          onDrop={
+            onActionDrop
+              ? (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onActionDrop(subGoal.id, actionInfo.actionPos);
+                }
+              : undefined
+          }
           className="border rounded hover:opacity-90 p-1 cursor-pointer text-xs h-full flex items-center justify-center"
           style={{
             backgroundColor: actionBg,
