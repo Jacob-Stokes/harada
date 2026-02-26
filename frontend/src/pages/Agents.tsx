@@ -176,71 +176,67 @@ export default function Agents() {
           </div>
         )}
 
-        {apiKey && (
-          <section className="mt-8 space-y-4">
-            <h2 className="text-2xl font-semibold text-gray-900">Current Goal Overview</h2>
-            {loading ? (
-              <div className="bg-white rounded-lg border border-gray-200 p-6 text-gray-500">
-                Loading latest summary…
-              </div>
-            ) : (
-              <div className="space-y-4">{renderGoalOverview()}</div>
-            )}
-          </section>
-        )}
-
-        <section className="mt-10 grid lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow border border-gray-200 p-6 space-y-4">
-            <h3 className="text-xl font-semibold text-gray-900">Agent Brief</h3>
-            <ul className="list-disc list-inside text-sm text-gray-600 space-y-2">
-              <li>Harada grid = 1 primary goal → 8 sub-goals → 8 actions each. Keep the structure intact.</li>
-              <li>Use activity logs for progress; actions are rarely “completed” in a binary sense.</li>
-              <li>Prefer positive, coaching-style language when writing updates or guestbook notes.</li>
-              <li>Default timezone: user’s local (Pacific). Mention dates explicitly if scheduling tasks.</li>
-              <li>Never delete data unless it’s explicitly requested via the API.</li>
-            </ul>
+        {loading ? (
+          <div className="mt-8 bg-white rounded-lg border border-gray-200 p-6 text-gray-500">
+            Loading agent brief…
           </div>
-          <div className="bg-white rounded-lg shadow border border-gray-200 p-6 space-y-4">
-            <h3 className="text-xl font-semibold text-gray-900">API Quickstart</h3>
-            <div className="text-sm text-gray-600 space-y-2">
-              <p>
-                Base URL: <code className="bg-gray-100 px-1 rounded">{API_URL}</code>
-              </p>
-              <p>Include the API key in the <code>x-api-key</code> header.</p>
-              <p>
-                Recommended first call: <code>GET /api/user/summary?level=detailed</code> for the full tree.
-              </p>
-            </div>
-            <pre className="bg-gray-900 text-green-300 text-xs p-3 rounded overflow-x-auto">
+        ) : apiKey && brief ? (
+          <>
+            {/* Guidance and API Info - BEFORE Goals */}
+            <section className="mt-10 grid lg:grid-cols-2 gap-6">
+              <div className="bg-white rounded-lg shadow border border-gray-200 p-6 space-y-4">
+                <h3 className="text-xl font-semibold text-gray-900">API Information</h3>
+                <div className="text-sm text-gray-600 space-y-2">
+                  <p>
+                    Base URL: <code className="bg-gray-100 px-1 rounded">{brief.api.baseUrl}</code>
+                  </p>
+                  <p>Include the API key in the <code>x-api-key</code> header.</p>
+                  <p>
+                    Recommended endpoint: <code className="bg-gray-100 px-1 rounded">{brief.api.summaryEndpoint}</code>
+                  </p>
+                </div>
+                <pre className="bg-gray-900 text-green-300 text-xs p-3 rounded overflow-x-auto">
 {`curl -H "x-api-key: $API_KEY" \\
-  ${API_URL}/api/user/summary?level=detailed`}
-            </pre>
-            <p className="text-xs text-gray-500">
-              Need sample payloads? Head to Settings → API Documentation for more endpoints, or export goals as JSON.
-            </p>
-          </div>
-        </section>
+  ${brief.api.baseUrl}${brief.api.summaryEndpoint}`}
+                </pre>
+              </div>
+              <div className="bg-white rounded-lg shadow border border-gray-200 p-6 space-y-4">
+                <h3 className="text-xl font-semibold text-gray-900">Agent Brief</h3>
+                <p className="text-sm text-gray-600">
+                  Harada grid = 1 primary goal → 8 sub-goals → 8 actions each. Keep the structure intact.
+                </p>
+                <p className="text-xs text-gray-500">
+                  Generated: {new Date(brief.generatedAt).toLocaleString()}
+                </p>
+              </div>
+            </section>
 
-        <section className="mt-10 grid lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-xl font-semibold mb-3">Workflow Suggestions</h3>
-            <ol className="list-decimal list-inside text-sm text-gray-600 space-y-2">
-              <li>Fetch <code>/api/user/summary?level=detailed</code> to load context.</li>
-              <li>Flag lagging sub-goals by checking last activity timestamps.</li>
-              <li>Log progress via <code>POST /api/logs/action/:actionId</code> with metrics.</li>
-              <li>Encourage the user via <code>POST /api/guestbook</code> (target_type user/goal).</li>
-            </ol>
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-3">
-            <h3 className="text-xl font-semibold">Safety & Etiquette</h3>
-            <ul className="text-sm text-gray-600 space-y-2">
-              <li>Respect confidentiality—data stays within the assistant session.</li>
-              <li>Ask before creating or deleting goals; prefer suggesting changes over editing directly.</li>
-              <li>Log sources when summarizing; include action IDs in notes for cross-reference.</li>
-              <li>Surface blockers or ambiguities in the guestbook so Jacob can clarify.</li>
-            </ul>
-          </div>
-        </section>
+            <section className="mt-10 grid lg:grid-cols-2 gap-6">
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-xl font-semibold mb-3">Workflow Suggestions</h3>
+                <ol className="list-decimal list-inside text-sm text-gray-600 space-y-2">
+                  {brief.guidance.workflow.map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ol>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-3">
+                <h3 className="text-xl font-semibold">Etiquette</h3>
+                <ul className="list-disc list-inside text-sm text-gray-600 space-y-2">
+                  {brief.guidance.etiquette.map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+
+            {/* Goals - AFTER Guidance and API */}
+            <section className="mt-10 space-y-4">
+              <h2 className="text-2xl font-semibold text-gray-900">Current Goals</h2>
+              <div className="space-y-4">{renderGoalOverview()}</div>
+            </section>
+          </>
+        ) : null}
       </div>
     </div>
   );

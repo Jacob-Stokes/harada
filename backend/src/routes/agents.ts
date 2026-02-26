@@ -47,7 +47,6 @@ router.get('/brief', (req: Request, res: Response) => {
       success: true,
       data: {
         generatedAt: new Date().toISOString(),
-        goals,
         guidance: {
           workflow: [
             'Call GET /api/user/summary?level=detailed for the full grid.',
@@ -66,6 +65,7 @@ router.get('/brief', (req: Request, res: Response) => {
           baseUrl: process.env.FRONTEND_URL || req.protocol + '://' + req.get('host'),
           summaryEndpoint: '/api/user/summary?level=detailed',
         },
+        goals,
       },
       error: null,
     });
