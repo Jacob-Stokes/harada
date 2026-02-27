@@ -121,7 +121,7 @@ POST /api/guestbook
 ## Project Structure
 
 ```
-harada/
+xharada/
 ├── backend/
 │   ├── src/
 │   │   ├── db/              # Database schema and migrations
@@ -130,9 +130,6 @@ harada/
 │   │   └── index.ts         # Express server
 │   ├── Dockerfile
 │   └── package.json
-├── cv-app/
-│   ├── backend/             # Career Command Center API (Express + SQLite)
-│   └── frontend/            # React + Tailwind client with Harada visuals
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/           # React pages
@@ -160,10 +157,6 @@ cd frontend
 npm install
 npm run dev  # Runs on port 3000
 ```
-
-### Companion CV App
-
-The `cv-app/` directory contains a second application that reuses the same stack for resume and cover letter workflows. This provides agents with a consistent visual language across both applications. Backend runs on port 4001, frontend on port 4000. See `cv-app/README.md` for details.
 
 ### MCP Server
 
