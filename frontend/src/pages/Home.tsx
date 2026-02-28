@@ -140,7 +140,18 @@ export default function Home() {
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <img src="/logo.svg" alt="xharada logo" className="w-16 h-16" />
+            <svg width="64" height="64" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+              <rect x="0" y="0" width="100" height="100" fill="hsl(0, 100%, 75%)" stroke="white" strokeWidth="2"/>
+              <rect x="100" y="0" width="100" height="100" fill="hsl(30, 100%, 75%)" stroke="white" strokeWidth="2"/>
+              <rect x="200" y="0" width="100" height="100" fill="hsl(60, 100%, 75%)" stroke="white" strokeWidth="2"/>
+              <rect x="0" y="100" width="100" height="100" fill="hsl(120, 100%, 75%)" stroke="white" strokeWidth="2"/>
+              <rect x="100" y="100" width="100" height="100" fill="hsl(180, 100%, 75%)" stroke="white" strokeWidth="2"/>
+              <rect x="200" y="100" width="100" height="100" fill="hsl(210, 100%, 75%)" stroke="white" strokeWidth="2"/>
+              <rect x="0" y="200" width="100" height="100" fill="hsl(240, 100%, 75%)" stroke="white" strokeWidth="2"/>
+              <rect x="100" y="200" width="100" height="100" fill="hsl(270, 100%, 75%)" stroke="white" strokeWidth="2"/>
+              <rect x="200" y="200" width="100" height="100" fill="hsl(300, 100%, 75%)" stroke="white" strokeWidth="2"/>
+              <path d="M 75 75 L 225 225 M 225 75 L 75 225" stroke="rgba(0, 0, 0, 0.8)" strokeWidth="30" strokeLinecap="round" fill="none"/>
+            </svg>
             <div>
               <h1 className="text-4xl font-bold text-gray-900">Harada Method</h1>
               <p className="text-gray-600 mt-2">Your Goal Planning System</p>
