@@ -17,10 +17,10 @@
   <rect x="100" y="200" width="100" height="100" fill="hsl(270, 100%, 75%)" stroke="white" stroke-width="2"/> <!-- Purple -->
   <rect x="200" y="200" width="100" height="100" fill="hsl(300, 100%, 75%)" stroke="white" stroke-width="2"/> <!-- Magenta -->
 
-  <!-- Large 'X' in the center -->
-  <path d="M 75 75 L 225 225 M 225 75 L 75 225"
+  <!-- 'X' in the center square only -->
+  <path d="M 120 120 L 180 180 M 180 120 L 120 180"
         stroke="rgba(0, 0, 0, 0.8)"
-        stroke-width="30"
+        stroke-width="20"
         stroke-linecap="round"
         fill="none"/>
 </svg>
