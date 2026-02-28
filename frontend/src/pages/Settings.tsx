@@ -426,7 +426,7 @@ export default function Settings() {
               <section>
                 <h3 className="text-lg font-semibold mb-2">Overview</h3>
                 <p className="text-gray-700">
-                  The Harada Method API exposes every goal, sub-goal, action item, log, and guestbook entry so AI agents can coach, summarize, or automate check-ins. The API is RESTful, JSON-only, and every endpoint returns a predictable <code className="bg-gray-100 px-1 rounded text-sm">success/data/error</code> envelope.
+                  The xharada API exposes every goal, sub-goal, action item, log, and guestbook entry so AI agents can coach, summarize, or automate check-ins. The API is RESTful, JSON-only, and every endpoint returns a predictable <code className="bg-gray-100 px-1 rounded text-sm">success/data/error</code> envelope.
                 </p>
               </section>
 

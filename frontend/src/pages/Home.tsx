@@ -153,7 +153,7 @@ export default function Home() {
               <path d="M 120 120 L 180 180 M 180 120 L 120 180" stroke="rgba(0, 0, 0, 0.8)" strokeWidth="20" strokeLinecap="round" fill="none"/>
             </svg>
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">Harada Method</h1>
+              <h1 className="text-4xl font-bold text-gray-900">xharada</h1>
               <p className="text-gray-600 mt-2">Your Goal Planning System</p>
             </div>
           </div>

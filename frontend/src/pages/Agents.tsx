@@ -136,7 +136,7 @@ export default function Agents() {
       <div className="container mx-auto px-4 py-10 max-w-5xl">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <p className="text-sm text-blue-600">Harada Method · Agent Briefing</p>
+            <p className="text-sm text-blue-600">xharada · Agent Briefing</p>
             <h1 className="text-4xl font-bold text-gray-900">
               {brief?.overview.title || 'Agent Landing Page'}
             </h1>

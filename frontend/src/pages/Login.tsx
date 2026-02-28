@@ -43,8 +43,22 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
       <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Harada Method</h1>
-        <p className="text-gray-600 mb-6">Sign in to access your goals</p>
+        <div className="flex flex-col items-center mb-6">
+          <svg width="80" height="80" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" className="mb-4">
+            <rect x="0" y="0" width="100" height="100" fill="hsl(0, 100%, 75%)" stroke="white" strokeWidth="2"/>
+            <rect x="100" y="0" width="100" height="100" fill="hsl(30, 100%, 75%)" stroke="white" strokeWidth="2"/>
+            <rect x="200" y="0" width="100" height="100" fill="hsl(60, 100%, 75%)" stroke="white" strokeWidth="2"/>
+            <rect x="0" y="100" width="100" height="100" fill="hsl(120, 100%, 75%)" stroke="white" strokeWidth="2"/>
+            <rect x="100" y="100" width="100" height="100" fill="hsl(180, 100%, 75%)" stroke="white" strokeWidth="2"/>
+            <rect x="200" y="100" width="100" height="100" fill="hsl(210, 100%, 75%)" stroke="white" strokeWidth="2"/>
+            <rect x="0" y="200" width="100" height="100" fill="hsl(240, 100%, 75%)" stroke="white" strokeWidth="2"/>
+            <rect x="100" y="200" width="100" height="100" fill="hsl(270, 100%, 75%)" stroke="white" strokeWidth="2"/>
+            <rect x="200" y="200" width="100" height="100" fill="hsl(300, 100%, 75%)" stroke="white" strokeWidth="2"/>
+            <path d="M 120 120 L 180 180 M 180 120 L 120 180" stroke="rgba(0, 0, 0, 0.8)" strokeWidth="20" strokeLinecap="round" fill="none"/>
+          </svg>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">xharada</h1>
+          <p className="text-gray-600">Sign in to access your goals</p>
+        </div>
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
