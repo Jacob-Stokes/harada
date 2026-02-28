@@ -1,4 +1,7 @@
-# Harada Method Tracker
+<div align="center">
+  <img src="frontend/public/logo.svg" alt="xharada logo" width="120" height="120">
+  <h1>Harada Method Tracker</h1>
+</div>
 
 A personal goal tracking application based on the Harada Method - a Japanese goal-setting framework using nested 64-square grids. Built for AI agent integration and continuous improvement tracking.
 
