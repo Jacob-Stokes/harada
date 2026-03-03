@@ -106,7 +106,6 @@ export default function Settings() {
 
   const toggleQueryParamAuth = async () => {
     const newValue = !allowQueryParamAuth;
-    setAllowQueryParamAuth(newValue);
     try {
       const response = await fetch(`${API_URL}/api/auth/settings`, {
         method: 'PUT',
@@ -118,10 +117,10 @@ export default function Settings() {
       if (data.success) {
         setAllowQueryParamAuth(data.data.allow_query_param_auth);
       } else {
-        setAllowQueryParamAuth(!newValue); // revert on failure
+        setError(data.error || 'Failed to update setting');
       }
-    } catch {
-      setAllowQueryParamAuth(!newValue); // revert on failure
+    } catch (err) {
+      setError((err as Error).message);
     }
   };
 
