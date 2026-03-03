@@ -1034,8 +1034,14 @@ export default function GoalGrid() {
             <div className="p-6 border-b sticky top-0 bg-white">
               <div className="flex justify-between items-start">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedSubGoal.title}</h2>
-                  <p className="text-sm text-gray-600 mt-1">Manage Actions</p>
+                  <h2
+                    className="text-2xl font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                    onClick={() => handleUpdateSubGoal(selectedSubGoal)}
+                    title="Click to rename"
+                  >
+                    {selectedSubGoal.title}
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">Manage Actions · <span className="text-blue-500 cursor-pointer hover:underline" onClick={() => handleUpdateSubGoal(selectedSubGoal)}>Rename</span></p>
                 </div>
                 <button
                   onClick={() => setShowSubGoalModal(false)}
