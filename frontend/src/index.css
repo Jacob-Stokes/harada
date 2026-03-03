@@ -40,6 +40,7 @@ code {
   .printable-grid,
   .printable-grid * {
     visibility: visible !important;
+    box-shadow: none !important;
   }
 
   .printable-grid {
@@ -49,6 +50,8 @@ code {
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
   }
 
   .print-hidden {
