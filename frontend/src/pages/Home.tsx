@@ -347,6 +347,9 @@ export default function Home() {
                     <p className="text-xs text-gray-500 mt-2">
                       Share the UI link with browser-based agents. The JSON link returns raw API data directly — works with CLI agents, MCP, curl, etc.
                     </p>
+                    <p className="text-xs text-amber-600 mt-1">
+                      ⚠️ These URLs contain your API key. Only share them with trusted agents — anyone with the link can read and modify your goals.
+                    </p>
                   </div>
 
                   <div className="flex gap-3 pt-4">
