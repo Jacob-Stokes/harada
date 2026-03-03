@@ -1,5 +1,7 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import ConfirmModal from '../components/ConfirmModal';
 import { API_URL, api } from '../api/client';
 import { useDisplaySettings, paletteOptions, PaletteName } from '../context/DisplaySettingsContext';
@@ -21,6 +23,7 @@ interface GoalSummary {
 }
 
 export default function Settings() {
+  const { t } = useTranslation();
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +34,10 @@ export default function Settings() {
   const [confirmDeleteKeyId, setConfirmDeleteKeyId] = useState<{ id: string; name: string } | null>(null);
   const [keyCopied, setKeyCopied] = useState(false);
   const [allowQueryParamAuth, setAllowQueryParamAuth] = useState(true);
-  const [activeTab, setActiveTab] = useState<'keys' | 'docs' | 'display' | 'data' | 'etiquette'>('keys');
+  const [activeTab, setActiveTab] = useState<'api' | 'display' | 'data' | 'etiquette'>('api');
+  const [apiSubTab, setApiSubTab] = useState<'keys' | 'security' | 'docs'>('keys');
+  const [keysPage, setKeysPage] = useState(1);
+  const KEYS_PER_PAGE = 5;
   const [goalSummaries, setGoalSummaries] = useState<GoalSummary[]>([]);
   const [goalsLoading, setGoalsLoading] = useState(false);
   const [exportMode, setExportMode] = useState<'all' | 'selected'>('all');
@@ -62,7 +68,7 @@ export default function Settings() {
     ? candidateBackTarget
     : '/';
   const cameFromGoal = backTarget.startsWith('/goal/');
-  const backLabel = cameFromGoal ? '← Back to Goal' : '← Back to Goals';
+  const backLabel = cameFromGoal ? t('settings.backToGoal') : t('settings.backToGoals');
 
   const handleBackClick = () => {
     navigate(backTarget);
@@ -128,7 +134,7 @@ export default function Settings() {
       if (data.success) {
         setAllowQueryParamAuth(data.data.allow_query_param_auth);
       } else {
-        setError(data.error || 'Failed to update setting');
+        setError(data.error || t('settings.failedUpdateSetting'));
       }
     } catch (err) {
       setError((err as Error).message);
@@ -248,7 +254,7 @@ export default function Settings() {
 
   const handleExportGoals = async () => {
     if (exportMode === 'selected' && selectedGoalIds.length === 0) {
-      setDataNotice({ type: 'error', message: 'Select at least one goal to export.' });
+      setDataNotice({ type: 'error', message: t('settings.selectAtLeastOneGoal') });
       return;
     }
 
@@ -264,7 +270,7 @@ export default function Settings() {
       });
       const data = await response.json();
       if (!data.success) {
-        throw new Error(data.error || 'Export failed');
+        throw new Error(data.error || t('settings.exportFailed'));
       }
       const jsonString = JSON.stringify(data, null, 2);
       const blob = new Blob([jsonString], { type: 'application/json' });
@@ -279,7 +285,7 @@ export default function Settings() {
       URL.revokeObjectURL(url);
       setDataNotice({
         type: 'success',
-        message: `Exported ${data.data?.count ?? 0} goal${(data.data?.count ?? 0) === 1 ? '' : 's'}.`,
+        message: t('settings.exportedGoals', { count: data.data?.count ?? 0 }),
       });
     } catch (err) {
       setDataNotice({ type: 'error', message: (err as Error).message });
@@ -300,7 +306,7 @@ export default function Settings() {
       try {
         parsed = JSON.parse(text);
       } catch (parseErr) {
-        throw new Error('Selected file is not valid JSON');
+        throw new Error(t('settings.selectedFileNotJson'));
       }
 
       const goalsPayload = Array.isArray(parsed)
@@ -312,7 +318,7 @@ export default function Settings() {
             : null;
 
       if (!goalsPayload || goalsPayload.length === 0) {
-        throw new Error('No goals found in uploaded file.');
+        throw new Error(t('settings.noGoalsInFile'));
       }
 
       const response = await fetch(`${API_URL}/api/goals/import`, {
@@ -326,13 +332,17 @@ export default function Settings() {
 
       const data = await response.json();
       if (!data.success) {
-        throw new Error(data.error || 'Import failed');
+        throw new Error(data.error || t('settings.importFailed'));
       }
 
       const summary = data.data?.imported;
       setDataNotice({
         type: 'success',
-        message: `Imported ${summary?.goals ?? 0} goal${summary?.goals === 1 ? '' : 's'} (${summary?.subGoals ?? 0} sub-goals, ${summary?.actions ?? 0} actions).`,
+        message: t('settings.importedGoals', {
+          goals: summary?.goals ?? 0,
+          subGoals: summary?.subGoals ?? 0,
+          actions: summary?.actions ?? 0,
+        }),
       });
       fetchGoalSummaries();
     } catch (err) {
@@ -354,6 +364,10 @@ export default function Settings() {
 
       if (data.success) {
         loadKeys();
+        // If we'd be on an empty page after deletion, go back a page
+        const remaining = keys.length - 1;
+        const maxPage = Math.max(1, Math.ceil(remaining / KEYS_PER_PAGE));
+        if (keysPage > maxPage) setKeysPage(maxPage);
       } else {
         setError(data.error);
       }
@@ -363,7 +377,7 @@ export default function Settings() {
   };
 
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return 'Never';
+    if (!dateStr) return t('settings.never');
     return new Date(dateStr).toLocaleDateString();
   };
 
@@ -378,33 +392,23 @@ export default function Settings() {
           >
             {backLabel}
           </button>
-          <h1 className="text-4xl font-bold text-gray-900">Settings</h1>
+          <h1 className="text-4xl font-bold text-gray-900">{t('settings.title')}</h1>
           <p className="text-gray-600 mt-2">
-            Manage API keys and access documentation for AI agents
+            {t('settings.subtitle')}
           </p>
         </header>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
           <button
-            onClick={() => setActiveTab('keys')}
+            onClick={() => setActiveTab('api')}
             className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-              activeTab === 'keys'
+              activeTab === 'api'
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-600 hover:bg-gray-50'
             }`}
           >
-            API Keys
-          </button>
-          <button
-            onClick={() => setActiveTab('docs')}
-            className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-              activeTab === 'docs'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            API Documentation
+            {t('settings.tabApi')}
           </button>
           <button
             onClick={() => setActiveTab('display')}
@@ -414,7 +418,7 @@ export default function Settings() {
                 : 'bg-white text-gray-600 hover:bg-gray-50'
             }`}
           >
-            Display Settings
+            {t('settings.tabDisplay')}
           </button>
           <button
             onClick={() => setActiveTab('data')}
@@ -424,7 +428,7 @@ export default function Settings() {
                 : 'bg-white text-gray-600 hover:bg-gray-50'
             }`}
           >
-            Data Import/Export
+            {t('settings.tabData')}
           </button>
           <button
             onClick={() => setActiveTab('etiquette')}
@@ -434,7 +438,7 @@ export default function Settings() {
                 : 'bg-white text-gray-600 hover:bg-gray-50'
             }`}
           >
-            Agent Etiquette
+            {t('settings.tabEtiquette')}
           </button>
         </div>
 
@@ -444,104 +448,151 @@ export default function Settings() {
           </div>
         )}
 
-        {activeTab === 'keys' && (
+        {activeTab === 'api' && (
           <>
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Your API Keys</h2>
+            {/* Sub-tabs */}
+            <div className="flex gap-1 mb-6 border-b border-gray-200">
+              {(['keys', 'security', 'docs'] as const).map((sub) => (
                 <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  key={sub}
+                  onClick={() => setApiSubTab(sub)}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    apiSubTab === sub
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
                 >
-                  + Create New Key
+                  {sub === 'keys' ? t('settings.subTabKeys') : sub === 'security' ? t('settings.subTabSecurity') : t('settings.subTabDocs')}
                 </button>
-              </div>
+              ))}
+            </div>
 
-              {loading ? (
-                <p className="text-gray-500 text-center py-8">Loading...</p>
-              ) : keys.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
-                  No API keys yet. Create one to allow AI agents to access your goals.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {keys.map((key) => (
-                    <div
-                      key={key.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+            {apiSubTab === 'keys' && (
+              <>
+                <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold">{t('settings.yourApiKeys')}</h2>
+                    <button
+                      onClick={() => setShowCreateModal(true)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-lg">{key.name}</h3>
-                          <div className="mt-2 space-y-1 text-sm text-gray-600">
-                            <p>
-                              <span className="font-medium">Created:</span>{' '}
-                              {formatDate(key.created_at)}
-                            </p>
-                            <p>
-                              <span className="font-medium">Last used:</span>{' '}
-                              {formatDate(key.last_used_at)}
-                            </p>
-                            {key.expires_at && (
-                              <p>
-                                <span className="font-medium">Expires:</span>{' '}
-                                {formatDate(key.expires_at)}
-                              </p>
-                            )}
+                      {t('settings.createNewKey')}
+                    </button>
+                  </div>
+
+                  {loading ? (
+                    <p className="text-gray-500 text-center py-8">{t('common.loading')}</p>
+                  ) : keys.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">
+                      {t('settings.noApiKeys')}
+                    </p>
+                  ) : (
+                    <>
+                      <div className="space-y-3">
+                        {keys
+                          .slice((keysPage - 1) * KEYS_PER_PAGE, keysPage * KEYS_PER_PAGE)
+                          .map((key) => (
+                          <div
+                            key={key.id}
+                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-lg">{key.name}</h3>
+                                <div className="mt-2 space-y-1 text-sm text-gray-600">
+                                  <p>
+                                    <span className="font-medium">{t('settings.createdLabel')}</span>{' '}
+                                    {formatDate(key.created_at)}
+                                  </p>
+                                  <p>
+                                    <span className="font-medium">{t('settings.lastUsed')}</span>{' '}
+                                    {formatDate(key.last_used_at)}
+                                  </p>
+                                  {key.expires_at && (
+                                    <p>
+                                      <span className="font-medium">{t('settings.expires')}</span>{' '}
+                                      {formatDate(key.expires_at)}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => setConfirmDeleteKeyId({ id: key.id, name: key.name })}
+                                className="ml-4 px-3 py-1 text-sm text-red-600 hover:text-red-800 border border-red-300 rounded hover:bg-red-50"
+                              >
+                                {t('common.revoke')}
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                        <button
-                          onClick={() => setConfirmDeleteKeyId({ id: key.id, name: key.name })}
-                          className="ml-4 px-3 py-1 text-sm text-red-600 hover:text-red-800 border border-red-300 rounded hover:bg-red-50"
-                        >
-                          Revoke
-                        </button>
+                        ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
 
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-              <h3 className="text-lg font-semibold mb-3">Security</h3>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={allowQueryParamAuth}
-                  onChange={toggleQueryParamAuth}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <div>
-                  <span className="font-medium text-gray-900">Allow API key in URL</span>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    When enabled, API keys can be passed as <code className="bg-gray-100 px-1 rounded">?apiKey=</code> query parameters. This is needed for shareable agent landing page links. Disable if you only use header-based auth (MCP, curl).
+                      {keys.length > KEYS_PER_PAGE && (
+                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                          <button
+                            onClick={() => setKeysPage((p) => Math.max(1, p - 1))}
+                            disabled={keysPage === 1}
+                            className="px-3 py-1 text-sm rounded border border-gray-300 disabled:opacity-40 hover:bg-gray-50 disabled:hover:bg-white"
+                          >
+                            {t('home.prev')}
+                          </button>
+                          <span className="text-sm text-gray-600">
+                            {t('settings.pageOf', { page: keysPage, total: Math.ceil(keys.length / KEYS_PER_PAGE) })}
+                          </span>
+                          <button
+                            onClick={() => setKeysPage((p) => Math.min(Math.ceil(keys.length / KEYS_PER_PAGE), p + 1))}
+                            disabled={keysPage >= Math.ceil(keys.length / KEYS_PER_PAGE)}
+                            className="px-3 py-1 text-sm rounded border border-gray-300 disabled:opacity-40 hover:bg-gray-50 disabled:hover:bg-white"
+                          >
+                            {t('home.next')}
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                  <h3 className="font-semibold text-blue-900 mb-2">{t('settings.quickStart')}</h3>
+                  <p className="text-sm text-blue-800 mb-3">
+                    {t('settings.quickStartDesc')}
                   </p>
+                  <pre className="bg-blue-900 text-blue-100 p-3 rounded text-xs overflow-x-auto">
+                    curl -H "x-api-key: YOUR-API-KEY" \{'\n'}
+                    {'  '}https://harada.jacobstokes.com/api/user/summary
+                  </pre>
                 </div>
-              </label>
-            </div>
+              </>
+            )}
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-              <h3 className="font-semibold text-blue-900 mb-2">Quick Start</h3>
-              <p className="text-sm text-blue-800 mb-3">
-                Include your API key in the request header to access your goals:
-              </p>
-              <pre className="bg-blue-900 text-blue-100 p-3 rounded text-xs overflow-x-auto">
-                curl -H "x-api-key: YOUR-API-KEY" \{'\n'}
-                {'  '}https://harada.jacobstokes.com/api/user/summary
-              </pre>
-            </div>
-          </>
-        )}
+            {apiSubTab === 'security' && (
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h3 className="text-lg font-semibold mb-3">{t('settings.security')}</h3>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={allowQueryParamAuth}
+                    onChange={toggleQueryParamAuth}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div>
+                    <span className="font-medium text-gray-900">{t('settings.allowApiKeyInUrl')}</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {t('settings.allowApiKeyInUrlDesc')}<code className="bg-gray-100 px-1 rounded">{t('settings.apiKeyQueryParam')}</code>{t('settings.allowApiKeyInUrlDescSuffix')}
+                    </p>
+                  </div>
+                </label>
+              </div>
+            )}
 
-        {activeTab === 'docs' && (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-semibold mb-4">API Documentation</h2>
+            {apiSubTab === 'docs' && (
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h2 className="text-2xl font-semibold mb-4">{t('settings.apiDocumentation')}</h2>
 
             <div className="space-y-6">
               {/* Overview */}
               <section>
-                <h3 className="text-lg font-semibold mb-2">Overview</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('settings.overview')}</h3>
                 <p className="text-gray-700">
                   The xharada API exposes every goal, sub-goal, action item, log, and guestbook entry so AI agents can coach, summarize, or automate check-ins. The API is RESTful, JSON-only, and every endpoint returns a predictable <code className="bg-gray-100 px-1 rounded text-sm">success/data/error</code> envelope.
                 </p>
@@ -549,10 +600,10 @@ export default function Settings() {
 
               {/* Base URL */}
               <section>
-                <h3 className="text-lg font-semibold mb-2">Base URL & Headers</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('settings.baseUrlHeaders')}</h3>
                 <div className="bg-gray-50 p-4 rounded text-sm space-y-2">
-                  <p><strong>Production:</strong> <code className="bg-white px-2 py-1 rounded border">https://harada.jacobstokes.com</code></p>
-                  <p><strong>Local dev:</strong> <code className="bg-white px-2 py-1 rounded border">http://localhost:3001</code></p>
+                  <p><strong>{t('settings.production')}</strong> <code className="bg-white px-2 py-1 rounded border">https://harada.jacobstokes.com</code></p>
+                  <p><strong>{t('settings.localDev')}</strong> <code className="bg-white px-2 py-1 rounded border">http://localhost:3001</code></p>
                   <p>All requests must send <code className="bg-white px-2 py-1 rounded border">Content-Type: application/json</code> when a body is present.</p>
                   <pre className="bg-gray-900 text-green-400 p-3 rounded text-xs overflow-x-auto">
 curl -H "x-api-key: $API_KEY" \
@@ -564,7 +615,7 @@ curl -H "x-api-key: $API_KEY" \
 
               {/* Authentication */}
               <section>
-                <h3 className="text-lg font-semibold mb-2">Authentication</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('settings.authentication')}</h3>
                 <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
                   <li>
                     <strong>Session Cookie:</strong> The web app sets <code className="bg-gray-100 px-1 rounded">connect.sid</code>. Use it for browser-based integrations.
@@ -577,7 +628,7 @@ curl -H "x-api-key: $API_KEY" \
 
               {/* Core Resources */}
               <section>
-                <h3 className="text-lg font-semibold mb-3">Core Resources</h3>
+                <h3 className="text-lg font-semibold mb-3">{t('settings.coreResources')}</h3>
                 <div className="grid md:grid-cols-2 gap-4">
                   {[
                     { method: 'GET', path: '/api/user/summary', text: 'Full tree of goals → sub-goals → actions plus optional logs and guestbook data.' },
@@ -604,7 +655,7 @@ curl -H "x-api-key: $API_KEY" \
 
               {/* User Summary Options */}
               <section>
-                <h3 className="text-lg font-semibold mb-2">/api/user/summary Parameters</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('settings.summaryParameters')}</h3>
                 <div className="bg-gray-50 p-4 rounded text-sm space-y-2">
                   <p><code className="bg-white px-2 py-1 rounded border">level</code> (default <code>standard</code>)</p>
                   <ul className="list-disc list-inside ml-4 space-y-1 text-gray-700">
@@ -620,7 +671,7 @@ curl -H "x-api-key: $API_KEY" \
 
               {/* Guestbook + Logs */}
               <section>
-                <h3 className="text-lg font-semibold mb-2">Activity Logs & Guestbook Payloads</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('settings.logsGuestbookPayloads')}</h3>
                 <pre className="bg-gray-900 text-green-400 p-3 rounded text-xs overflow-x-auto">
 {`# Log progress on an action (captures metrics & mood)
 curl -X POST "$API_URL/api/logs/action/{ACTION_ID}" \\
@@ -649,7 +700,7 @@ curl -X POST "$API_URL/api/guestbook" \\
 
               {/* Data Model */}
               <section>
-                <h3 className="text-lg font-semibold mb-2">Data Model Mental Model</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('settings.dataModelMentalModel')}</h3>
                 <div className="bg-gray-50 p-4 rounded space-y-2 text-sm">
                   <p><strong>Primary Goal</strong> → 8 <strong>Sub-Goals</strong> → 8 <strong>Action Items</strong> (64 actions per goal).</p>
                   <p><strong>Activity Logs</strong> capture continuous progress—no "done" checkbox exists.</p>
@@ -661,7 +712,7 @@ curl -X POST "$API_URL/api/guestbook" \\
 
               {/* Response Format */}
               <section>
-                <h3 className="text-lg font-semibold mb-2">Response & Error Format</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('settings.responseErrorFormat')}</h3>
                 <div className="grid md:grid-cols-2 gap-4">
                   <pre className="bg-gray-900 text-green-400 p-3 rounded text-xs overflow-x-auto">
 {`{
@@ -685,7 +736,7 @@ curl -X POST "$API_URL/api/guestbook" \\
 
               {/* Example Workflows */}
               <section>
-                <h3 className="text-lg font-semibold mb-2">Suggested Agent Workflow</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('settings.suggestedAgentWorkflow')}</h3>
                 <ol className="list-decimal list-inside space-y-2 text-gray-700">
                   <li>Call <code className="bg-gray-100 px-1 rounded">GET /api/user/summary?level=detailed</code> once per run to build context.</li>
                   <li>Deep dive on neglected actions via <code className="bg-gray-100 px-1 rounded">GET /api/logs/action/:actionId</code>.</li>
@@ -695,22 +746,24 @@ curl -X POST "$API_URL/api/guestbook" \\
               </section>
             </div>
           </div>
+            )}
+          </>
         )}
 
         {activeTab === 'display' && (
           <div className="bg-white rounded-lg shadow-lg p-6 space-y-8">
             <div>
-              <h2 className="text-2xl font-semibold mb-2">Display Preferences</h2>
+              <h2 className="text-2xl font-semibold mb-2">{t('settings.displayPreferences')}</h2>
               <p className="text-gray-600 text-sm">
-                These preferences live in your browser (localStorage). Update them anytime to change how grids render.
+                {t('settings.displayPreferencesDesc')}
               </p>
             </div>
 
             {/* Default View */}
             <section>
-              <h3 className="text-lg font-semibold mb-2">Default Goal View</h3>
+              <h3 className="text-lg font-semibold mb-2">{t('settings.defaultGoalView')}</h3>
               <p className="text-sm text-gray-600 mb-3">
-                Choose which layout loads first when you open a goal.
+                {t('settings.defaultGoalViewDesc')}
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 {(['compact', 'full'] as const).map((mode) => (
@@ -723,11 +776,11 @@ curl -X POST "$API_URL/api/guestbook" \\
                         : 'border-gray-200 hover:border-blue-300'
                     }`}
                   >
-                    <div className="font-medium capitalize">{mode} view</div>
+                    <div className="font-medium capitalize">{mode}{t('settings.viewSuffix')}</div>
                     <p className="text-sm text-gray-600">
                       {mode === 'compact'
-                        ? 'Grid summary tiles with action list.'
-                        : 'Full 9×9 Harada board with inline editing.'}
+                        ? t('settings.compactViewDesc')
+                        : t('settings.fullViewDesc')}
                     </p>
                   </button>
                 ))}
@@ -736,9 +789,9 @@ curl -X POST "$API_URL/api/guestbook" \\
 
             {/* Goals Per Page */}
             <section>
-              <h3 className="text-lg font-semibold mb-2">Goals Per Page</h3>
+              <h3 className="text-lg font-semibold mb-2">{t('settings.goalsPerPage')}</h3>
               <p className="text-sm text-gray-600 mb-3">
-                Number of goals shown per page on the home screen.
+                {t('settings.goalsPerPageDesc')}
               </p>
               <div className="flex items-center gap-3">
                 {[3, 5, 10, 25].map((n) => (
@@ -757,19 +810,48 @@ curl -X POST "$API_URL/api/guestbook" \\
               </div>
             </section>
 
+            {/* Language */}
+            <section>
+              <h3 className="text-lg font-semibold mb-2">{t('settings.language')}</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                {t('settings.languageDesc')}
+              </p>
+              <div className="flex items-center gap-3">
+                {[
+                  { code: 'en-US', label: 'English (US)' },
+                  { code: 'en-GB', label: 'English (UK)' },
+                ].map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      i18n.changeLanguage(lang.code);
+                      updateDisplaySettings({ language: lang.code });
+                    }}
+                    className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
+                      (displaySettings.language || i18n.language) === lang.code
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-blue-300'
+                    }`}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+
             {/* Palette */}
             <section>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold">Color Palette</h3>
+                <h3 className="text-lg font-semibold">{t('settings.colorPalette')}</h3>
                 <button
                   onClick={resetSubGoalColors}
                   className="text-sm text-blue-600 hover:underline"
                 >
-                  Reset Custom Colors
+                  {t('settings.resetCustomColors')}
                 </button>
               </div>
               <p className="text-sm text-gray-600 mb-3">
-                Pick a palette or override individual sub-goal colors below.
+                {t('settings.colorPaletteDesc')}
               </p>
               <div className="grid md:grid-cols-2 gap-4">
                 {Object.entries(paletteOptions).map(([name, option]) => {
@@ -784,7 +866,7 @@ curl -X POST "$API_URL/api/guestbook" \\
                           : 'border-gray-200 hover:border-blue-200'
                       }`}
                     >
-                      <div className="font-semibold mb-2">{option.label}</div>
+                      <div className="font-semibold mb-2">{t('palette.' + name)}</div>
                       <div className="flex gap-1">
                         {option.colors.map((color, idx) => (
                           <span
@@ -802,9 +884,9 @@ curl -X POST "$API_URL/api/guestbook" \\
 
             {/* Custom Colors */}
             <section>
-              <h3 className="text-lg font-semibold mb-2">Custom Sub-goal Colors</h3>
+              <h3 className="text-lg font-semibold mb-2">{t('settings.customSubGoalColors')}</h3>
               <p className="text-sm text-gray-600 mb-4">
-                Override any individual block. Leave a color unset to inherit from the palette.
+                {t('settings.customSubGoalColorsDesc')}
               </p>
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {Array.from({ length: 8 }, (_, index) => {
@@ -819,14 +901,14 @@ curl -X POST "$API_URL/api/guestbook" \\
                       className="border rounded-lg p-3 flex flex-col gap-2"
                     >
                       <div className="flex items-center justify-between text-sm font-medium">
-                        <span>Sub-goal {position}</span>
+                        <span>{t('settings.subGoalPosition', { position })}</span>
                         {displaySettings.customSubGoalColors[position] && (
                           <button
                             type="button"
                             className="text-xs text-red-500 hover:underline"
                             onClick={() => setSubGoalColor(position, null)}
                           >
-                            Clear
+                            {t('settings.clear')}
                           </button>
                         )}
                       </div>
@@ -844,7 +926,7 @@ curl -X POST "$API_URL/api/guestbook" \\
 
             {/* Action Styling */}
             <section>
-              <h3 className="text-lg font-semibold mb-2">Action Tile Styling</h3>
+              <h3 className="text-lg font-semibold mb-2">{t('settings.actionTileStyling')}</h3>
               <div className="flex items-center gap-3">
                 <input
                   id="inherit-action-color"
@@ -856,12 +938,12 @@ curl -X POST "$API_URL/api/guestbook" \\
                   className="h-4 w-4"
                 />
                 <label htmlFor="inherit-action-color" className="text-sm text-gray-700">
-                  Actions inherit their parent sub-goal color
+                  {t('settings.inheritActionColors')}
                 </label>
               </div>
               <div className="mt-4">
                 <label className="text-sm text-gray-600 flex justify-between">
-                  <span>Action lightness (0% = same as parent, 100% = white)</span>
+                  <span>{t('settings.actionLightness')}</span>
                   <span>{displaySettings.actionShadePercent}%</span>
                 </label>
                 <input
@@ -879,12 +961,12 @@ curl -X POST "$API_URL/api/guestbook" \\
                 <div className="mt-3 flex items-center gap-3 text-sm text-gray-600">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex h-5 w-5 rounded border" style={{ backgroundColor: previewBaseColor }} />
-                    Parent
+                    {t('settings.parent')}
                   </div>
-                  <span>→</span>
+                  <span>{t('settings.arrow')}</span>
                   <div className="flex items-center gap-2">
                     <span className="inline-flex h-5 w-5 rounded border" style={{ backgroundColor: previewActionColor }} />
-                    Action preview
+                    {t('settings.actionPreview')}
                   </div>
                 </div>
               </div>
@@ -892,21 +974,21 @@ curl -X POST "$API_URL/api/guestbook" \\
 
             {/* Center Layout */}
             <section>
-              <h3 className="text-lg font-semibold mb-2">Center Layout</h3>
+              <h3 className="text-lg font-semibold mb-2">{t('settings.centerLayout')}</h3>
               <p className="text-sm text-gray-600 mb-3">
-                Decide how the main goal appears inside the 3×3 center.
+                {t('settings.centerLayoutDesc')}
               </p>
               <div className="grid md:grid-cols-2 gap-4">
                 {[
                   {
                     key: 'single',
-                    title: 'Single Focus Block',
-                    description: 'One large tile (current default).',
+                    title: t('settings.singleFocusBlock'),
+                    description: t('settings.singleFocusBlockDesc'),
                   },
                   {
                     key: 'radial',
-                    title: 'Directional Bridges',
-                    description: 'Center goal plus three inner bridge boxes referencing sub-goals with arrows.',
+                    title: t('settings.directionalBridges'),
+                    description: t('settings.directionalBridgesDesc'),
                   },
                 ].map((layoutOption) => (
                   <button
@@ -929,14 +1011,14 @@ curl -X POST "$API_URL/api/guestbook" \\
 
             {/* Center Background */}
             <section>
-              <h3 className="text-lg font-semibold mb-2">Center Background</h3>
+              <h3 className="text-lg font-semibold mb-2">{t('settings.centerBackground')}</h3>
               <p className="text-sm text-gray-600 mb-3">
-                Choose whether the middle 3×3 zone blends with the white card or matches the page&apos;s gray backdrop.
+                {t('settings.centerBackgroundDesc')}
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 {[
-                  { key: 'card', title: 'Match Card', description: 'White background (current default).' },
-                  { key: 'page', title: 'Match Page', description: 'Light gray like the outer page.' },
+                  { key: 'card', title: t('settings.matchCard'), description: t('settings.matchCardDesc') },
+                  { key: 'page', title: t('settings.matchPage'), description: t('settings.matchPageDesc') },
                 ].map((option) => (
                   <button
                     key={option.key}
@@ -974,10 +1056,9 @@ curl -X POST "$API_URL/api/guestbook" \\
 
             <section className="space-y-4">
               <div>
-                <h3 className="text-lg font-semibold mb-1">Export Goals to JSON</h3>
+                <h3 className="text-lg font-semibold mb-1">{t('settings.exportGoals')}</h3>
                 <p className="text-sm text-gray-600">
-                  Download a snapshot of your goals, sub-goals, actions, and activity logs. You can re-import the file later
-                  or share it with trusted automation.
+                  {t('settings.exportGoalsDesc')}
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
@@ -989,7 +1070,7 @@ curl -X POST "$API_URL/api/guestbook" \\
                     checked={exportMode === 'all'}
                     onChange={() => setExportMode('all')}
                   />
-                  Export all goals
+                  {t('settings.exportAllGoals')}
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -999,15 +1080,15 @@ curl -X POST "$API_URL/api/guestbook" \\
                     checked={exportMode === 'selected'}
                     onChange={() => setExportMode('selected')}
                   />
-                  Choose specific goals
+                  {t('settings.chooseSpecificGoals')}
                 </label>
               </div>
               {exportMode === 'selected' && (
                 <div className="border rounded-lg p-3 bg-gray-50 max-h-64 overflow-y-auto text-sm">
                   {goalsLoading ? (
-                    <p className="text-gray-500">Loading goals...</p>
+                    <p className="text-gray-500">{t('settings.loadingGoals')}</p>
                   ) : goalSummaries.length === 0 ? (
-                    <p className="text-gray-500">No goals available.</p>
+                    <p className="text-gray-500">{t('settings.noGoalsAvailable')}</p>
                   ) : (
                     goalSummaries.map((goal) => (
                       <label key={goal.id} className="flex items-center gap-3 py-1 cursor-pointer">
@@ -1019,7 +1100,7 @@ curl -X POST "$API_URL/api/guestbook" \\
                         <div>
                           <div className="font-medium text-gray-800">{goal.title}</div>
                           <div className="text-xs text-gray-500">
-                            Status: {goal.status} • Created {new Date(goal.created_at).toLocaleDateString()}
+                            {t('common.status')}{goal.status} • {t('common.created')}{new Date(goal.created_at).toLocaleDateString()}
                           </div>
                         </div>
                       </label>
@@ -1035,16 +1116,15 @@ curl -X POST "$API_URL/api/guestbook" \\
                   exportingGoals ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
                 }`}
               >
-                {exportingGoals ? 'Preparing...' : 'Download JSON'}
+                {exportingGoals ? t('settings.preparing') : t('settings.downloadJson')}
               </button>
             </section>
 
             <section className="space-y-4">
               <div>
-                <h3 className="text-lg font-semibold mb-1">Import Goals from JSON</h3>
+                <h3 className="text-lg font-semibold mb-1">{t('settings.importGoals')}</h3>
                 <p className="text-sm text-gray-600">
-                  Upload a JSON file previously exported from Harada. Imported goals are added alongside your existing ones
-                  with new IDs.
+                  {t('settings.importGoalsDesc')}
                 </p>
               </div>
               <label
@@ -1054,7 +1134,7 @@ curl -X POST "$API_URL/api/guestbook" \\
                 <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                {importingGoals ? 'Uploading...' : 'Choose JSON file'}
+                {importingGoals ? t('settings.uploading') : t('settings.chooseJsonFile')}
                 <input
                   id="goal-import-input"
                   type="file"
@@ -1065,7 +1145,7 @@ curl -X POST "$API_URL/api/guestbook" \\
                 />
               </label>
               <p className="text-xs text-gray-500">
-                Tip: export first to see the exact schema. Import always appends new goals; it never overwrites existing ones.
+                {t('settings.importTip')}
               </p>
             </section>
           </div>
@@ -1075,21 +1155,21 @@ curl -X POST "$API_URL/api/guestbook" \\
           <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Agent Etiquette Rules</h2>
+                <h2 className="text-xl font-bold text-gray-900">{t('settings.agentEtiquetteRules')}</h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Customize the etiquette guidelines shown to AI agents on the landing page.
+                  {t('settings.agentEtiquetteDesc')}
                 </p>
               </div>
               <button
                 onClick={() => setConfirmResetEtiquette(true)}
                 className="px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
               >
-                Reset to Defaults
+                {t('settings.resetToDefaults')}
               </button>
             </div>
 
             {etiquetteLoading ? (
-              <p className="text-gray-500">Loading...</p>
+              <p className="text-gray-500">{t('common.loading')}</p>
             ) : (
               <div className="space-y-2">
                 {etiquetteRules.map((rule) => (
@@ -1111,13 +1191,13 @@ curl -X POST "$API_URL/api/guestbook" \\
                           onClick={() => handleUpdateEtiquette(rule.id)}
                           className="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
                         >
-                          Save
+                          {t('common.save')}
                         </button>
                         <button
                           onClick={() => { setEditingEtiquetteId(null); setEditingEtiquetteContent(''); }}
                           className="px-3 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50"
                         >
-                          Cancel
+                          {t('common.cancel')}
                         </button>
                       </div>
                     ) : (
@@ -1125,22 +1205,22 @@ curl -X POST "$API_URL/api/guestbook" \\
                         <div className="flex-1 px-3 py-2 bg-gray-50 rounded text-sm text-gray-700 border border-gray-200">
                           {rule.content}
                           {rule.is_default ? (
-                            <span className="ml-2 text-xs text-gray-400">(default)</span>
+                            <span className="ml-2 text-xs text-gray-400">{t('settings.defaultBadge')}</span>
                           ) : null}
                         </div>
                         <button
                           onClick={() => { setEditingEtiquetteId(rule.id); setEditingEtiquetteContent(rule.content); }}
                           className="px-2 py-2 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity text-sm"
-                          title="Edit"
+                          title={t('common.edit')}
                         >
-                          Edit
+                          {t('common.edit')}
                         </button>
                         <button
                           onClick={() => handleDeleteEtiquette(rule.id)}
                           className="px-2 py-2 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity text-sm"
-                          title="Remove"
+                          title={t('common.remove')}
                         >
-                          Remove
+                          {t('common.remove')}
                         </button>
                       </>
                     )}
@@ -1154,7 +1234,7 @@ curl -X POST "$API_URL/api/guestbook" \\
                     value={newEtiquetteContent}
                     onChange={(e) => setNewEtiquetteContent(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleAddEtiquette(); }}
-                    placeholder="Add a new etiquette rule..."
+                    placeholder={t('settings.addEtiquettePlaceholder')}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   />
                   <button
@@ -1162,7 +1242,7 @@ curl -X POST "$API_URL/api/guestbook" \\
                     disabled={!newEtiquetteContent.trim()}
                     className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Add
+                    {t('common.add')}
                   </button>
                 </div>
               </div>
@@ -1176,19 +1256,19 @@ curl -X POST "$API_URL/api/guestbook" \\
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6 border-b">
-              <h2 className="text-2xl font-bold text-gray-900">Create API Key</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t('settings.createApiKey')}</h2>
             </div>
 
             <form onSubmit={handleCreateKey} className="p-6">
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Key Name
+                  {t('settings.keyName')}
                 </label>
                 <input
                   type="text"
                   value={newKeyName}
                   onChange={(e) => setNewKeyName(e.target.value)}
-                  placeholder="e.g., Claude AI, Mobile App"
+                  placeholder={t('settings.keyNamePlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
@@ -1196,7 +1276,7 @@ curl -X POST "$API_URL/api/guestbook" \\
 
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Expires in (days)
+                  {t('settings.expiresInDays')}
                 </label>
                 <input
                   type="number"
@@ -1208,7 +1288,7 @@ curl -X POST "$API_URL/api/guestbook" \\
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Leave at 365 for 1 year, or set to 3650 for 10 years
+                  {t('settings.expiresHint')}
                 </p>
               </div>
 
@@ -1222,13 +1302,13 @@ curl -X POST "$API_URL/api/guestbook" \\
                   }}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
-                  Create Key
+                  {t('settings.createKey')}
                 </button>
               </div>
             </form>
@@ -1241,13 +1321,13 @@ curl -X POST "$API_URL/api/guestbook" \\
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full">
             <div className="p-6 border-b">
-              <h2 className="text-2xl font-bold text-gray-900">API Key Created</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t('settings.apiKeyCreated')}</h2>
             </div>
 
             <div className="p-6">
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                 <p className="text-sm text-yellow-800 font-semibold">
-                  ⚠️ Copy this key now - it will not be shown again!
+                  {t('settings.copyKeyWarning')}
                 </p>
               </div>
 
@@ -1263,7 +1343,7 @@ curl -X POST "$API_URL/api/guestbook" \\
                 }}
                 className="w-full mt-4 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
               >
-                {keyCopied ? 'Copied!' : 'Copy to Clipboard'}
+                {keyCopied ? t('common.copied') : t('settings.copyToClipboard')}
               </button>
             </div>
 
@@ -1275,7 +1355,7 @@ curl -X POST "$API_URL/api/guestbook" \\
                 }}
                 className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               >
-                Done
+                {t('common.done')}
               </button>
             </div>
           </div>
@@ -1284,9 +1364,9 @@ curl -X POST "$API_URL/api/guestbook" \\
 
       {confirmResetEtiquette && (
         <ConfirmModal
-          title="Reset Etiquette Rules"
-          message="This will remove all custom rules and restore the defaults. Continue?"
-          confirmLabel="Reset"
+          title={t('settings.resetEtiquetteTitle')}
+          message={t('settings.resetEtiquetteMessage')}
+          confirmLabel={t('common.reset')}
           confirmClassName="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-medium"
           onConfirm={handleResetEtiquette}
           onCancel={() => setConfirmResetEtiquette(false)}
@@ -1295,9 +1375,9 @@ curl -X POST "$API_URL/api/guestbook" \\
 
       {confirmDeleteKeyId && (
         <ConfirmModal
-          title="Revoke API Key"
-          message={`Delete API key "${confirmDeleteKeyId.name}"? This cannot be undone.`}
-          confirmLabel="Revoke"
+          title={t('settings.revokeApiKeyTitle')}
+          message={t('settings.revokeApiKeyMessage', { name: confirmDeleteKeyId.name })}
+          confirmLabel={t('common.revoke')}
           onConfirm={() => {
             handleDeleteKey(confirmDeleteKeyId.id);
             setConfirmDeleteKeyId(null);

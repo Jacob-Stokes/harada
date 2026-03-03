@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api, API_URL } from '../api/client';
 import ConfirmModal from '../components/ConfirmModal';
 import Guestbook from '../components/Guestbook';
@@ -14,6 +15,7 @@ interface Goal {
 }
 
 export default function Home() {
+  const { t } = useTranslation();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,11 +135,11 @@ export default function Home() {
       });
       const data = await response.json();
       if (!data.success) {
-        throw new Error(data.error || 'Failed to create API key');
+        throw new Error(data.error || t('home.failedCreateApiKey'));
       }
       const key = data.data?.key;
       setPastedApiKey(key || '');
-      setAgentKeyNotice({ type: 'success', message: 'New API key generated. Copy and store it securely.' });
+      setAgentKeyNotice({ type: 'success', message: t('home.newApiKeyGenerated') });
     } catch (err) {
       setAgentKeyNotice({ type: 'error', message: (err as Error).message });
     } finally {
@@ -179,20 +181,20 @@ export default function Home() {
               onClick={handleOpenAgentDialog}
               className="px-4 py-2 text-sm text-blue-600 hover:text-blue-900 border border-blue-200 rounded hover:bg-blue-50"
             >
-              Agent Landing
+              {t('home.agentLanding')}
             </button>
             <Link
               to="/settings"
               state={{ from: location.pathname }}
               className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded hover:bg-gray-100"
             >
-              Settings
+              {t('home.settings')}
             </Link>
             <button
               onClick={handleLogout}
               className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded hover:bg-gray-100"
             >
-              Logout
+              {t('home.logout')}
             </button>
           </div>
         </header>
@@ -204,31 +206,31 @@ export default function Home() {
         )}
 
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Create New Goal</h2>
+          <h2 className="text-2xl font-semibold mb-4">{t('home.createNewGoal')}</h2>
           <form onSubmit={handleCreateGoal} className="flex gap-4">
             <input
               type="text"
               value={newGoalTitle}
               onChange={(e) => setNewGoalTitle(e.target.value)}
-              placeholder="Enter goal title..."
+              placeholder={t('home.enterGoalTitle')}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               type="submit"
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Create Goal
+              {t('home.createGoal')}
             </button>
           </form>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-semibold mb-4">Your Goals</h2>
+          <h2 className="text-2xl font-semibold mb-4">{t('home.yourGoals')}</h2>
 
           {loading ? (
-            <p className="text-gray-500">Loading goals...</p>
+            <p className="text-gray-500">{t('home.loadingGoals')}</p>
           ) : goals.length === 0 ? (
-            <p className="text-gray-500">No goals yet. Create your first goal above!</p>
+            <p className="text-gray-500">{t('home.noGoals')}</p>
           ) : (
             <>
               <div className="grid gap-4">
@@ -244,8 +246,8 @@ export default function Home() {
                           <p className="text-gray-600 mt-1">{goal.description}</p>
                         )}
                         <div className="flex gap-4 mt-2 text-sm text-gray-500">
-                          <span className="capitalize">Status: {goal.status}</span>
-                          <span>Created: {new Date(goal.created_at).toLocaleDateString()}</span>
+                          <span className="capitalize">{t('common.status')}{goal.status}</span>
+                          <span>{t('common.created')}{new Date(goal.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -253,13 +255,13 @@ export default function Home() {
                           to={`/goal/${goal.id}`}
                           className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm"
                         >
-                          View Grid
+                          {t('home.viewGrid')}
                         </Link>
                         <button
                           onClick={() => setConfirmDeleteGoalId(goal.id)}
                           className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm"
                         >
-                          Delete
+                          {t('common.delete')}
                         </button>
                       </div>
                     </div>
@@ -271,7 +273,11 @@ export default function Home() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t">
                   <p className="text-sm text-gray-500">
-                    Showing {(safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, goals.length)} of {goals.length} goals
+                    {t('home.showingRange', {
+                      start: (safePage - 1) * perPage + 1,
+                      end: Math.min(safePage * perPage, goals.length),
+                      total: goals.length,
+                    })}
                   </p>
                   <div className="flex gap-1">
                     <button
@@ -279,7 +285,7 @@ export default function Home() {
                       disabled={safePage === 1}
                       className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      Prev
+                      {t('home.prev')}
                     </button>
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                       <button
@@ -297,7 +303,7 @@ export default function Home() {
                       disabled={safePage === totalPages}
                       className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      Next
+                      {t('home.next')}
                     </button>
                   </div>
                 </div>
@@ -317,25 +323,25 @@ export default function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-gray-900">Agent Landing Page</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t('home.agentLandingPage')}</h2>
               <button
                 onClick={() => setShowAgentDialog(false)}
                 className="text-gray-400 hover:text-gray-600 text-2xl"
               >
-                ×
+                &times;
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Paste Your API Key
+                  {t('home.pasteApiKey')}
                 </label>
                 <input
                   type="text"
                   value={pastedApiKey}
                   onChange={(e) => setPastedApiKey(e.target.value)}
-                  placeholder="Paste your API key here..."
+                  placeholder={t('home.pasteApiKeyPlaceholder')}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -347,14 +353,14 @@ export default function Home() {
                       creatingAgentKey ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
                     }`}
                   >
-                    {creatingAgentKey ? 'Generating…' : 'Generate API Key'}
+                    {creatingAgentKey ? t('home.generatingKey') : t('home.generateApiKey')}
                   </button>
                   <Link
                     to="/settings"
                     className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
                     onClick={() => setShowAgentDialog(false)}
                   >
-                    Manage Keys in Settings
+                    {t('home.manageKeysInSettings')}
                   </Link>
                 </div>
                 {agentKeyNotice && (
@@ -372,7 +378,7 @@ export default function Home() {
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Agent Landing URL
+                      {t('home.agentLandingUrl')}
                     </label>
                     <div className="space-y-3">
                       <div className="flex gap-2">
@@ -386,7 +392,7 @@ export default function Home() {
                           onClick={handleCopyUrl}
                           className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors whitespace-nowrap"
                         >
-                          {copied ? '✓ Copied!' : 'Copy'}
+                          {copied ? t('common.copied') : t('common.copy')}
                         </button>
                       </div>
                       {allowQueryParamAuth && (
@@ -404,7 +410,7 @@ export default function Home() {
                             }}
                             className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors whitespace-nowrap"
                           >
-                            Copy JSON URL
+                            {t('home.copyJsonUrl')}
                           </button>
                         </div>
                       )}
@@ -412,15 +418,15 @@ export default function Home() {
                     {allowQueryParamAuth ? (
                       <>
                         <p className="text-xs text-gray-500 mt-2">
-                          Share the UI link with browser-based agents. The JSON link returns raw API data directly — works with CLI agents, MCP, curl, etc.
+                          {t('home.shareUrlInfo')}
                         </p>
                         <p className="text-xs text-amber-600 mt-1">
-                          ⚠️ These URLs contain your API key. Only share them with trusted agents — anyone with the link can read and modify your goals.
+                          {t('home.shareUrlWarning')}
                         </p>
                       </>
                     ) : (
                       <p className="text-xs text-gray-500 mt-2">
-                        JSON URL sharing is disabled. Enable "Allow API key in URL" in <Link to="/settings" className="text-blue-600 underline" onClick={() => setShowAgentDialog(false)}>Settings</Link> to generate a shareable JSON link.
+                        {t('home.jsonUrlDisabled')}<Link to="/settings" className="text-blue-600 underline" onClick={() => setShowAgentDialog(false)}>{t('home.jsonUrlDisabledSettings')}</Link>{t('home.jsonUrlDisabledSuffix')}
                       </p>
                     )}
                   </div>
@@ -430,14 +436,14 @@ export default function Home() {
                       onClick={handlePreview}
                       className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
-                      Preview Landing Page
+                      {t('home.previewLandingPage')}
                     </button>
                     <Link
                       to="/settings"
                       onClick={() => setShowAgentDialog(false)}
                       className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-center"
                     >
-                      Manage API Keys
+                      {t('home.manageApiKeys')}
                     </Link>
                   </div>
                 </>
@@ -449,9 +455,9 @@ export default function Home() {
 
       {confirmDeleteGoalId && (
         <ConfirmModal
-          title="Delete Goal"
-          message="Are you sure you want to delete this goal? This cannot be undone."
-          confirmLabel="Delete"
+          title={t('home.deleteGoalTitle')}
+          message={t('home.deleteGoalMessage')}
+          confirmLabel={t('common.delete')}
           onConfirm={() => {
             handleDeleteGoal(confirmDeleteGoalId);
             setConfirmDeleteGoalId(null);

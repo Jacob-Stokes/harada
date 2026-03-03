@@ -1,0 +1,21 @@
+{
+  "settings": {
+    "colorPalette": "Colour Palette",
+    "resetCustomColors": "Reset Custom Colours",
+    "colorPaletteDesc": "Pick a palette or override individual sub-goal colours below.",
+    "customSubGoalColors": "Custom Sub-goal Colours",
+    "customSubGoalColorsDesc": "Override any individual block. Leave a colour unset to inherit from the palette.",
+    "inheritActionColors": "Actions inherit their parent sub-goal colour",
+    "centerLayout": "Centre Layout",
+    "centerLayoutDesc": "Decide how the main goal appears inside the 3\u00d73 centre.",
+    "directionalBridgesDesc": "Centre goal plus three inner bridge boxes referencing sub-goals with arrows.",
+    "centerBackground": "Centre Background",
+    "centerBackgroundDesc": "Choose whether the middle 3\u00d73 zone blends with the white card or matches the page's grey backdrop.",
+    "matchPageDesc": "Light grey like the outer page.",
+    "agentEtiquetteDesc": "Customise the etiquette guidelines shown to AI agents on the landing page."
+  },
+
+  "palette": {
+    "mono": "Greyscale"
+  }
+}

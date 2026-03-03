@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Home from './pages/Home';
 import GoalGrid from './pages/GoalGrid';
 import Login from './pages/Login';
@@ -10,6 +11,7 @@ import { api } from './api/client';
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -28,7 +30,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-500">{t('app.loading')}</p>
       </div>
     );
   }

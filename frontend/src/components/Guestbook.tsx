@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { API_URL } from '../api/client';
 import ReactMarkdown from 'react-markdown';
 
@@ -19,6 +20,7 @@ interface GuestbookProps {
 }
 
 export default function Guestbook({ targetType, targetId, preloadedEntries, readOnly }: GuestbookProps) {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState<GuestbookEntry[]>(preloadedEntries || []);
   const [loading, setLoading] = useState(!preloadedEntries);
   const [error, setError] = useState<string | null>(null);
@@ -58,28 +60,28 @@ export default function Guestbook({ targetType, targetId, preloadedEntries, read
 
   const getTargetIcon = (type: string) => {
     switch (type) {
-      case 'user': return '👤';
-      case 'goal': return '🎯';
-      case 'subgoal': return '📊';
-      case 'action': return '✅';
-      default: return '💬';
+      case 'user': return '\ud83d\udc64';
+      case 'goal': return '\ud83c\udfaf';
+      case 'subgoal': return '\ud83d\udcca';
+      case 'action': return '\u2705';
+      default: return '\ud83d\udcac';
     }
   };
 
   const getTargetLabel = (type: string) => {
     switch (type) {
-      case 'user': return 'General';
-      case 'goal': return 'Goal';
-      case 'subgoal': return 'Sub-Goal';
-      case 'action': return 'Action';
-      default: return 'Comment';
+      case 'user': return t('guestbook.general');
+      case 'goal': return t('guestbook.goal');
+      case 'subgoal': return t('guestbook.subGoal');
+      case 'action': return t('guestbook.action');
+      default: return t('guestbook.comment');
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <p className="text-gray-500">Loading guestbook...</p>
+        <p className="text-gray-500">{t('guestbook.loadingGuestbook')}</p>
       </div>
     );
   }
@@ -96,23 +98,23 @@ export default function Guestbook({ targetType, targetId, preloadedEntries, read
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">
-          AI Agent Guestbook ({entries.length})
+          {t('guestbook.title', { count: entries.length })}
         </h3>
         {!readOnly && (
           <button
             onClick={loadEntries}
             className="text-sm text-blue-600 hover:text-blue-800"
           >
-            Refresh
+            {t('common.refresh')}
           </button>
         )}
       </div>
 
       {entries.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-          <p className="text-gray-500 mb-2">No AI agent comments yet</p>
+          <p className="text-gray-500 mb-2">{t('guestbook.noComments')}</p>
           <p className="text-sm text-gray-400">
-            AI agents can leave comments about your progress, insights, or encouragement
+            {t('guestbook.noCommentsDesc')}
           </p>
         </div>
       ) : (
@@ -130,7 +132,7 @@ export default function Guestbook({ targetType, targetId, preloadedEntries, read
                     <div className="text-xs text-gray-500">
                       {getTargetLabel(entry.target_type)}
                       {entry.target_id && (
-                        <span className="ml-1">· ID: {entry.target_id.substring(0, 8)}...</span>
+                        <span className="ml-1">&middot; {t('guestbook.idPrefix')}{entry.target_id.substring(0, 8)}...</span>
                       )}
                     </div>
                   </div>
@@ -150,7 +152,7 @@ export default function Guestbook({ targetType, targetId, preloadedEntries, read
 
       {!readOnly && (
         <div className="text-xs text-gray-500 text-center pt-4 border-t">
-          AI agents can post comments via the API using POST /api/guestbook
+          {t('guestbook.apiHint')}
         </div>
       )}
     </div>

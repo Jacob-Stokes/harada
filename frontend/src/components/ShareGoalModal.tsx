@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 
 interface ShareLink {
@@ -16,6 +17,7 @@ interface ShareGoalModalProps {
 }
 
 export default function ShareGoalModal({ goalId, goalTitle, onClose }: ShareGoalModalProps) {
+  const { t } = useTranslation();
   const [showLogs, setShowLogs] = useState(false);
   const [showGuestbook, setShowGuestbook] = useState(false);
   const [existingLinks, setExistingLinks] = useState<ShareLink[]>([]);
@@ -94,7 +96,7 @@ export default function ShareGoalModal({ goalId, goalTitle, onClose }: ShareGoal
       <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Share Goal</h2>
+            <h2 className="text-xl font-bold text-gray-900">{t('share.shareGoal')}</h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
@@ -103,13 +105,13 @@ export default function ShareGoalModal({ goalId, goalTitle, onClose }: ShareGoal
             </button>
           </div>
 
-          <p className="text-sm text-gray-600 mb-4">
-            Create a public link for <strong>{goalTitle}</strong>. Anyone with the link can view the goal grid in read-only mode.
-          </p>
+          <p className="text-sm text-gray-600 mb-4" dangerouslySetInnerHTML={{
+            __html: t('share.createLinkDescription', { title: goalTitle })
+          }} />
 
           {/* Create new link */}
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-gray-800 mb-3">New Share Link</h3>
+            <h3 className="font-semibold text-gray-800 mb-3">{t('share.newShareLink')}</h3>
             <div className="space-y-2 mb-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -118,7 +120,7 @@ export default function ShareGoalModal({ goalId, goalTitle, onClose }: ShareGoal
                   onChange={(e) => setShowLogs(e.target.checked)}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <span className="text-sm text-gray-700">Include activity logs</span>
+                <span className="text-sm text-gray-700">{t('share.includeActivityLogs')}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -127,7 +129,7 @@ export default function ShareGoalModal({ goalId, goalTitle, onClose }: ShareGoal
                   onChange={(e) => setShowGuestbook(e.target.checked)}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <span className="text-sm text-gray-700">Include AI guestbook</span>
+                <span className="text-sm text-gray-700">{t('share.includeAiGuestbook')}</span>
               </label>
             </div>
             <button
@@ -135,7 +137,7 @@ export default function ShareGoalModal({ goalId, goalTitle, onClose }: ShareGoal
               disabled={creating}
               className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm font-medium"
             >
-              {creating ? 'Creating...' : 'Generate Link'}
+              {creating ? t('share.creating') : t('share.generateLink')}
             </button>
           </div>
 
@@ -148,13 +150,13 @@ export default function ShareGoalModal({ goalId, goalTitle, onClose }: ShareGoal
           {/* Existing links */}
           <div>
             <h3 className="font-semibold text-gray-800 mb-3">
-              Active Links {!loading && `(${existingLinks.length})`}
+              {t('share.activeLinks')} {!loading && `(${existingLinks.length})`}
             </h3>
 
             {loading ? (
-              <p className="text-sm text-gray-500">Loading...</p>
+              <p className="text-sm text-gray-500">{t('common.loading')}</p>
             ) : existingLinks.length === 0 ? (
-              <p className="text-sm text-gray-500">No active share links yet.</p>
+              <p className="text-sm text-gray-500">{t('share.noActiveLinks')}</p>
             ) : (
               <div className="space-y-3">
                 {existingLinks.map((link) => (
@@ -174,20 +176,20 @@ export default function ShareGoalModal({ goalId, goalTitle, onClose }: ShareGoal
                         onClick={() => handleCopy(link.token, link.id)}
                         className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors whitespace-nowrap"
                       >
-                        {copiedId === link.id ? 'Copied!' : 'Copy'}
+                        {copiedId === link.id ? t('common.copied') : t('common.copy')}
                       </button>
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3 text-xs text-gray-500">
                         <span>{new Date(link.created_at).toLocaleDateString()}</span>
-                        <span>{link.show_logs ? 'Logs' : 'No logs'}</span>
-                        <span>{link.show_guestbook ? 'Guestbook' : 'No guestbook'}</span>
+                        <span>{link.show_logs ? t('share.logs') : t('share.noLogs')}</span>
+                        <span>{link.show_guestbook ? t('share.guestbook') : t('share.noGuestbook')}</span>
                       </div>
                       <button
                         onClick={() => handleRevoke(link.id)}
                         className="text-xs text-red-600 hover:text-red-800 transition-colors"
                       >
-                        Revoke
+                        {t('common.revoke')}
                       </button>
                     </div>
                   </div>

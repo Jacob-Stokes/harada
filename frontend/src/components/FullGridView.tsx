@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { darkenColor, getReadableTextColor, lightenColor } from '../utils/color';
 
 interface ActionItem {
@@ -66,6 +67,7 @@ export default function FullGridView({
   onActionDragEnd,
   readOnly = false
 }: FullGridViewProps) {
+  const { t } = useTranslation();
 
   const getSubGoalAtPosition = (position: number): SubGoal | undefined => {
     return subGoals.find(sg => sg.position === position);
@@ -120,7 +122,7 @@ export default function FullGridView({
                       color: getReadableTextColor(bg),
                     }}
                   >
-                    {subGoal ? subGoal.title : `Sub-goal ${bridge.position}`}
+                    {subGoal ? subGoal.title : t('fullGrid.subGoalPosition', { position: bridge.position })}
                   </div>
                   <div className="mt-1 text-gray-500" aria-hidden="true">
                     {bridge.arrow}
@@ -131,7 +133,7 @@ export default function FullGridView({
             <div
               className={`col-start-2 row-start-2 flex items-center justify-center text-center font-bold text-sm sm:text-lg px-2 rounded-md bg-blue-600 text-white transition-colors ${readOnly ? '' : 'cursor-pointer hover:bg-blue-700'}`}
               onClick={readOnly ? undefined : onCenterClick}
-              title={readOnly ? undefined : "Click to edit description"}
+              title={readOnly ? undefined : t('fullGrid.clickToEditDescription')}
             >
               {goalTitle}
             </div>
@@ -149,7 +151,7 @@ export default function FullGridView({
         <div
           onClick={readOnly ? undefined : onCenterClick}
           className={`w-full h-full bg-blue-600 text-white flex items-center justify-center font-bold text-base sm:text-lg transition-colors text-center px-4 rounded-md ${readOnly ? '' : 'cursor-pointer hover:bg-blue-700'}`}
-          title={readOnly ? undefined : "Click to edit description"}
+          title={readOnly ? undefined : t('fullGrid.clickToEditDescription')}
         >
           {goalTitle}
         </div>
@@ -202,7 +204,7 @@ export default function FullGridView({
             }
             className="bg-yellow-50 border border-yellow-300 p-1 flex items-center justify-center cursor-pointer hover:bg-yellow-100 text-xs h-full"
           >
-            <span className="text-yellow-700">+SG{subGoalPos}</span>
+            <span className="text-yellow-700">{t('fullGrid.addSubGoal', { position: subGoalPos })}</span>
           </div>
         );
       }
@@ -239,7 +241,7 @@ export default function FullGridView({
             e.preventDefault();
             onUpdateSubGoal?.(subGoal);
           }}
-          title={readOnly ? subGoal.title : "Click to view actions | Right-click to rename"}
+          title={readOnly ? subGoal.title : t('fullGrid.clickToViewActions')}
         >
           <div className="font-semibold text-xs text-center break-words">{subGoal.title}</div>
         </div>
@@ -370,7 +372,7 @@ export default function FullGridView({
             borderColor: actionColorSettings.inherit ? parentColor : '#d1d5db',
             color: actionTextColor,
           }}
-          title={readOnly ? action.title : action.title + ' (Right-click to edit)'}
+          title={readOnly ? action.title : action.title + t('fullGrid.rightClickToEdit')}
         >
           <div className="text-center break-words">{action.title}</div>
         </div>
@@ -408,7 +410,7 @@ export default function FullGridView({
       </div>
 
       <div className="mt-6 text-center text-sm text-gray-500 print-hidden">
-        <p>Full 9x9 Harada grid - Sub-goals (green) surrounded by 8 action items each. Click actions to log activity.</p>
+        <p>{t('fullGrid.footer')}</p>
       </div>
     </div>
   );

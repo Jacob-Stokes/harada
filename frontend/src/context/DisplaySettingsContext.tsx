@@ -14,6 +14,7 @@ export interface DisplaySettings {
   centerLayout: CenterLayout;
   centerBackdrop: CenterBackdrop;
   goalsPerPage: number;
+  language: string;
 }
 
 export const paletteOptions: Record<PaletteName, { label: string; colors: string[] }> = {
@@ -46,6 +47,7 @@ const defaultSettings: DisplaySettings = {
   centerLayout: 'single',
   centerBackdrop: 'card',
   goalsPerPage: 5,
+  language: 'en-US',
 };
 
 interface DisplaySettingsContextValue {

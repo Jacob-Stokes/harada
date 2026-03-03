@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import FullGridView from '../components/FullGridView';
 import Guestbook from '../components/Guestbook';
@@ -62,6 +63,7 @@ const DEFAULT_COLORS: Record<number, string> = {
 };
 
 export default function SharedGoalView() {
+  const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
   const [goal, setGoal] = useState<Goal | null>(null);
   const [guestbook, setGuestbook] = useState<GuestbookEntry[]>([]);
@@ -92,11 +94,11 @@ export default function SharedGoalView() {
 
   const getMoodEmoji = (mood?: string) => {
     switch (mood) {
-      case 'motivated': return '🔥';
-      case 'challenged': return '💪';
-      case 'accomplished': return '🏆';
-      case 'frustrated': return '😤';
-      case 'neutral': return '😐';
+      case 'motivated': return '\ud83d\udd25';
+      case 'challenged': return '\ud83d\udcaa';
+      case 'accomplished': return '\ud83c\udfc6';
+      case 'frustrated': return '\ud83d\ude24';
+      case 'neutral': return '\ud83d\ude10';
       default: return '';
     }
   };
@@ -104,7 +106,7 @@ export default function SharedGoalView() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-gray-500">Loading shared goal...</p>
+        <p className="text-gray-500">{t('sharedGoal.loadingSharedGoal')}</p>
       </div>
     );
   }
@@ -113,8 +115,8 @@ export default function SharedGoalView() {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Unable to Load</h2>
-          <p className="text-gray-600">{error || 'This share link may have been revoked or the goal no longer exists.'}</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">{t('sharedGoal.unableToLoad')}</h2>
+          <p className="text-gray-600">{error || t('sharedGoal.linkExpiredFallback')}</p>
         </div>
       </div>
     );
@@ -127,11 +129,10 @@ export default function SharedGoalView() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{goal.title}</h1>
-            <p className="text-sm text-gray-500 mt-1">Shared goal &middot; Read-only view</p>
+            <p className="text-sm text-gray-500 mt-1">{t('sharedGoal.readOnlyView')}</p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* View mode toggle */}
             <div className="flex bg-white rounded shadow border border-gray-200">
               <button
                 onClick={() => setViewMode('compact')}
@@ -141,7 +142,7 @@ export default function SharedGoalView() {
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                Compact
+                {t('sharedGoal.compact')}
               </button>
               <button
                 onClick={() => setViewMode('full')}
@@ -151,7 +152,7 @@ export default function SharedGoalView() {
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                Full 9x9 Grid
+                {t('sharedGoal.fullGrid')}
               </button>
             </div>
 
@@ -165,7 +166,7 @@ export default function SharedGoalView() {
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
-                  Square
+                  {t('sharedGoal.square')}
                 </button>
                 <button
                   onClick={() => setGridAspect('rectangle')}
@@ -175,7 +176,7 @@ export default function SharedGoalView() {
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
-                  Rectangle
+                  {t('sharedGoal.rectangle')}
                 </button>
               </div>
             )}
@@ -213,7 +214,6 @@ export default function SharedGoalView() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3, 8, 0, 4, 7, 6, 5].map((pos) => {
                 if (pos === 0) {
-                  // Center cell
                   return (
                     <div
                       key="center"
@@ -231,7 +231,7 @@ export default function SharedGoalView() {
                       key={`empty-${pos}`}
                       className="bg-gray-100 p-6 rounded-lg flex items-center justify-center min-h-[120px] border-2 border-dashed border-gray-300"
                     >
-                      <span className="text-gray-400 text-sm">Position {pos}</span>
+                      <span className="text-gray-400 text-sm">{t('sharedGoal.position', { pos })}</span>
                     </div>
                   );
                 }
@@ -267,7 +267,7 @@ export default function SharedGoalView() {
         )}
       </div>
 
-      {/* Action detail modal (read-only, with logs if enabled) */}
+      {/* Action detail modal */}
       {selectedAction && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -292,7 +292,7 @@ export default function SharedGoalView() {
 
               {shareSettings?.show_logs && selectedAction.logs && selectedAction.logs.length > 0 && (
                 <div>
-                  <h3 className="font-semibold text-gray-800 mb-3">Activity Logs</h3>
+                  <h3 className="font-semibold text-gray-800 mb-3">{t('sharedGoal.activityLogs')}</h3>
                   <div className="space-y-3">
                     {selectedAction.logs.map((log) => (
                       <div key={log.id} className="border border-gray-200 rounded-lg p-3">
@@ -323,11 +323,11 @@ export default function SharedGoalView() {
               )}
 
               {shareSettings?.show_logs && (!selectedAction.logs || selectedAction.logs.length === 0) && (
-                <p className="text-sm text-gray-500">No activity logs for this action.</p>
+                <p className="text-sm text-gray-500">{t('sharedGoal.noActivityLogs')}</p>
               )}
 
               {!shareSettings?.show_logs && (
-                <p className="text-sm text-gray-400 italic">Activity logs are not included in this share link.</p>
+                <p className="text-sm text-gray-400 italic">{t('sharedGoal.logsNotIncluded')}</p>
               )}
             </div>
           </div>
@@ -337,7 +337,7 @@ export default function SharedGoalView() {
       {/* Footer */}
       <div className="container mx-auto px-4 md:px-6 max-w-6xl mt-8">
         <p className="text-center text-xs text-gray-400">
-          Powered by Harada Method
+          {t('sharedGoal.poweredByHarada')}
         </p>
       </div>
     </div>

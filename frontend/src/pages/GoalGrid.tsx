@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import FullGridView from '../components/FullGridView';
 import ReactMarkdown from 'react-markdown';
@@ -56,6 +57,7 @@ type TextModalState =
   | { mode: 'rename-goal'; goalId: string };
 
 export default function GoalGrid() {
+  const { t } = useTranslation();
   const { goalId } = useParams<{ goalId: string }>();
   const location = useLocation();
   const [goal, setGoal] = useState<Goal | null>(null);
@@ -334,15 +336,15 @@ export default function GoalGrid() {
     if (!textModal) return '';
     switch (textModal.mode) {
       case 'add-subgoal':
-        return `Add Sub-goal ${textModal.position}`;
+        return t('goalGrid.addSubGoal', { position: textModal.position });
       case 'add-action':
-        return `Add Action ${textModal.position}`;
+        return t('goalGrid.addAction', { position: textModal.position });
       case 'rename-subgoal':
-        return 'Rename Sub-goal';
+        return t('goalGrid.renameSubGoal');
       case 'rename-action':
-        return 'Rename Action';
+        return t('goalGrid.renameAction');
       case 'rename-goal':
-        return 'Rename Goal';
+        return t('goalGrid.renameGoal');
       default:
         return '';
     }
@@ -353,7 +355,7 @@ export default function GoalGrid() {
     if (!textModal) return;
     const value = textModalValue.trim();
     if (!value) {
-      setTextModalError('Please enter a name.');
+      setTextModalError(t('goalGrid.pleaseEnterName'));
       return;
     }
     try {
@@ -418,7 +420,7 @@ export default function GoalGrid() {
           className="bg-yellow-50 border-2 border-dashed border-yellow-400 p-4 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors flex flex-col items-center justify-center h-full min-h-[120px]"
         >
           <div className="text-3xl text-yellow-600 mb-2">+</div>
-          <div className="text-sm text-gray-600">Add Sub-Goal {position}</div>
+          <div className="text-sm text-gray-600">{t('goalGrid.addSubGoalGrid', { position })}</div>
         </div>
       );
     }
@@ -453,10 +455,10 @@ export default function GoalGrid() {
         </div>
         <div className="mt-auto">
           <div className="text-xs opacity-80 mb-1">
-            {actionsWithActivity}/8 actions defined
+            {actionsWithActivity}{t('goalGrid.actionsCount')}
           </div>
           <div className="text-xs font-medium">
-            Click actions to log activity →
+            {t('goalGrid.clickActionsHint')}
           </div>
         </div>
       </div>
@@ -466,7 +468,7 @@ export default function GoalGrid() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-gray-500">Loading goal...</p>
+        <p className="text-gray-500">{t('goalGrid.loadingGoal')}</p>
       </div>
     );
   }
@@ -475,8 +477,8 @@ export default function GoalGrid() {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error || 'Goal not found'}</p>
-          <Link to="/" className="text-blue-600 hover:underline">Go back home</Link>
+          <p className="text-red-600 mb-4">{error || t('goalGrid.goalNotFound')}</p>
+          <Link to="/" className="text-blue-600 hover:underline">{t('goalGrid.goBackHome')}</Link>
         </div>
       </div>
     );
@@ -490,7 +492,7 @@ export default function GoalGrid() {
           <div className="flex-1">
             <div className="flex items-center gap-3 text-sm">
               <Link to="/" className="text-blue-600 hover:underline inline-flex items-center gap-1">
-                ← Back to Goals
+                {t('goalGrid.backToGoals')}
               </Link>
               <span className="text-gray-400">•</span>
               <Link
@@ -498,7 +500,7 @@ export default function GoalGrid() {
                 state={{ from: location.pathname }}
                 className="text-blue-600 hover:underline inline-flex items-center gap-1"
               >
-                ⚙ Settings
+                {t('goalGrid.settingsIcon')}
               </Link>
             </div>
             <h1
@@ -507,7 +509,7 @@ export default function GoalGrid() {
                 e.preventDefault();
                 startRenameGoal();
               }}
-              title="Right-click to rename"
+              title={t('goalGrid.rightClickToRename')}
             >
               {goal.title}
             </h1>
@@ -525,7 +527,7 @@ export default function GoalGrid() {
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                Compact View
+                {t('goalGrid.compactView')}
               </button>
               <button
                 onClick={() => setViewMode('full')}
@@ -535,7 +537,7 @@ export default function GoalGrid() {
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                Full 9x9 Grid
+                {t('goalGrid.fullGrid')}
               </button>
             </div>
 
@@ -550,7 +552,7 @@ export default function GoalGrid() {
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
-                  Square
+                  {t('goalGrid.square')}
                 </button>
                 <button
                   onClick={() => setGridAspect('rectangle')}
@@ -560,7 +562,7 @@ export default function GoalGrid() {
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
-                  Rectangle
+                  {t('goalGrid.rectangle')}
                 </button>
               </div>
             )}
@@ -570,14 +572,14 @@ export default function GoalGrid() {
               onClick={() => setShowShareModal(true)}
               className="print-hidden px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-100 transition-colors bg-white shadow"
             >
-              Share Goal
+              {t('goalGrid.shareGoal')}
             </button>
             <button
               type="button"
               onClick={handlePrintGrid}
               className="print-hidden px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-100 transition-colors bg-white shadow"
             >
-              Print Grid
+              {t('goalGrid.printGrid')}
             </button>
           </div>
         </div>
@@ -641,7 +643,7 @@ export default function GoalGrid() {
                 <div
                   onClick={handleOpenDescriptionModal}
                   className="bg-blue-600 text-white p-6 rounded-lg flex items-center justify-center text-center font-bold text-xl min-h-[120px] cursor-pointer hover:bg-blue-700 transition-colors"
-                  title="Click to edit description"
+                  title={t('goalGrid.editGoalDescription')}
                 >
                   {goal.title}
                 </div>
@@ -654,13 +656,13 @@ export default function GoalGrid() {
               </div>
 
               <div className="mt-6 text-center text-sm text-gray-500">
-                <p>Click on yellow cells to add sub-goals. Use "Full 9x9 Grid" view to see all actions nested in sub-goals.</p>
+                <p>{t('goalGrid.clickYellowCells')}</p>
               </div>
             </div>
 
             {/* Action Items List for Compact View */}
             <div className="mt-8 bg-white rounded-lg shadow-lg p-8">
-              <h3 className="text-lg font-semibold mb-4">All Actions</h3>
+              <h3 className="text-lg font-semibold mb-4">{t('goalGrid.allActions')}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {goal.subGoals.map((sg) => (
                   <div
@@ -677,12 +679,12 @@ export default function GoalGrid() {
                         onClick={() => scrollToSubGoalCard(sg.position)}
                         className="text-blue-600 hover:text-blue-800 text-[11px]"
                       >
-                        ↑ Back to grid
+                        {t('goalGrid.backToGrid')}
                       </button>
                     </div>
                     {sg.actions.length === 0 ? (
                       <div className="text-xs text-gray-500 bg-white border border-dashed border-gray-300 rounded p-3">
-                        No actions yet. Tap the card above or use Full grid view to add actions.
+                        {t('goalGrid.noActions')}
                       </div>
                     ) : (
                       <div className="space-y-2">
@@ -693,7 +695,7 @@ export default function GoalGrid() {
                             className="bg-white border border-gray-300 rounded p-2 cursor-pointer hover:shadow-md transition-shadow"
                           >
                             <div className="text-sm font-medium">{action.title}</div>
-                            <div className="text-xs text-gray-500 mt-1">Click to log activity</div>
+                            <div className="text-xs text-gray-500 mt-1">{t('goalGrid.clickToLogActivity')}</div>
                           </div>
                         ))}
                       </div>
@@ -745,12 +747,12 @@ export default function GoalGrid() {
               <h3 className="text-xl font-semibold text-gray-900">{getTextModalHeading()}</h3>
               <p className="text-sm text-gray-500 mt-1">
                 {textModal.mode === 'add-subgoal' &&
-                  'Give this new sub-goal a name so it stands out on the grid.'}
+                  t('goalGrid.addSubGoalPrompt')}
                 {textModal.mode === 'add-action' &&
-                  'Describe the action you want to track underneath this sub-goal.'}
-                {textModal.mode === 'rename-subgoal' && 'Update the sub-goal title.'}
-                {textModal.mode === 'rename-action' && 'Update the action title.'}
-                {textModal.mode === 'rename-goal' && 'Update the primary goal title.'}
+                  t('goalGrid.addActionPrompt')}
+                {textModal.mode === 'rename-subgoal' && t('goalGrid.renameSubGoalPrompt')}
+                {textModal.mode === 'rename-action' && t('goalGrid.renameActionPrompt')}
+                {textModal.mode === 'rename-goal' && t('goalGrid.renameGoalPrompt')}
               </p>
             </div>
             <input
@@ -772,7 +774,7 @@ export default function GoalGrid() {
                 }}
                 className="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
@@ -781,7 +783,7 @@ export default function GoalGrid() {
                   textModalSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
                 }`}
               >
-                {textModalSubmitting ? 'Saving...' : 'Save'}
+                {textModalSubmitting ? t('common.saving') : t('common.save')}
               </button>
             </div>
           </form>
@@ -796,7 +798,7 @@ export default function GoalGrid() {
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">{selectedAction.title}</h2>
-                  <p className="text-sm text-gray-600 mt-1">Activity Log</p>
+                  <p className="text-sm text-gray-600 mt-1">{t('goalGrid.activityLog')}</p>
                 </div>
                 <button
                   onClick={() => setShowLogModal(false)}
@@ -809,24 +811,24 @@ export default function GoalGrid() {
 
             {/* Add Log Form */}
             <div className="p-6 border-b bg-gray-50">
-              <h3 className="font-semibold mb-3">Log New Activity</h3>
+              <h3 className="font-semibold mb-3">{t('goalGrid.logNewActivity')}</h3>
               <form onSubmit={handleAddLog} className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Type</label>
+                    <label className="block text-sm font-medium mb-1">{t('goalGrid.logType')}</label>
                     <select
                       value={logForm.log_type}
                       onChange={(e) => setLogForm({...logForm, log_type: e.target.value})}
                       className="w-full px-3 py-2 border rounded"
                     >
-                      <option value="note">Note</option>
-                      <option value="progress">Progress</option>
-                      <option value="completion">Completion</option>
-                      <option value="link">Link</option>
+                      <option value="note">{t('goalGrid.logTypeNote')}</option>
+                      <option value="progress">{t('goalGrid.logTypeProgress')}</option>
+                      <option value="completion">{t('goalGrid.logTypeCompletion')}</option>
+                      <option value="link">{t('goalGrid.logTypeLink')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Date</label>
+                    <label className="block text-sm font-medium mb-1">{t('goalGrid.logDate')}</label>
                     <input
                       type="date"
                       value={logForm.log_date}
@@ -837,11 +839,11 @@ export default function GoalGrid() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Note</label>
+                  <label className="block text-sm font-medium mb-1">{t('goalGrid.logNote')}</label>
                   <textarea
                     value={logForm.content}
                     onChange={(e) => setLogForm({...logForm, content: e.target.value})}
-                    placeholder="What did you do?"
+                    placeholder={t('goalGrid.logNotePlaceholder')}
                     className="w-full px-3 py-2 border rounded"
                     rows={2}
                     required
@@ -851,23 +853,23 @@ export default function GoalGrid() {
                 {logForm.log_type === 'progress' && (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Metric Value</label>
+                      <label className="block text-sm font-medium mb-1">{t('goalGrid.metricValue')}</label>
                       <input
                         type="number"
                         step="0.1"
                         value={logForm.metric_value}
                         onChange={(e) => setLogForm({...logForm, metric_value: e.target.value})}
-                        placeholder="5.0"
+                        placeholder={t('goalGrid.metricValuePlaceholder')}
                         className="w-full px-3 py-2 border rounded"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Unit</label>
+                      <label className="block text-sm font-medium mb-1">{t('goalGrid.metricUnit')}</label>
                       <input
                         type="text"
                         value={logForm.metric_unit}
                         onChange={(e) => setLogForm({...logForm, metric_unit: e.target.value})}
-                        placeholder="km, lbs, hours..."
+                        placeholder={t('goalGrid.metricUnitPlaceholder')}
                         className="w-full px-3 py-2 border rounded"
                       />
                     </div>
@@ -875,18 +877,18 @@ export default function GoalGrid() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">How did it feel?</label>
+                  <label className="block text-sm font-medium mb-1">{t('goalGrid.mood')}</label>
                   <select
                     value={logForm.mood}
                     onChange={(e) => setLogForm({...logForm, mood: e.target.value})}
                     className="w-full px-3 py-2 border rounded"
                   >
-                    <option value="">Select mood (optional)</option>
-                    <option value="motivated">Motivated</option>
-                    <option value="accomplished">Accomplished</option>
-                    <option value="challenged">Challenged</option>
-                    <option value="frustrated">Frustrated</option>
-                    <option value="neutral">Neutral</option>
+                    <option value="">{t('goalGrid.moodSelect')}</option>
+                    <option value="motivated">{t('goalGrid.moodMotivated')}</option>
+                    <option value="accomplished">{t('goalGrid.moodAccomplished')}</option>
+                    <option value="challenged">{t('goalGrid.moodChallenged')}</option>
+                    <option value="frustrated">{t('goalGrid.moodFrustrated')}</option>
+                    <option value="neutral">{t('goalGrid.moodNeutral')}</option>
                   </select>
                 </div>
 
@@ -894,16 +896,16 @@ export default function GoalGrid() {
                   type="submit"
                   className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
-                  Add Log Entry
+                  {t('goalGrid.addLogEntry')}
                 </button>
               </form>
             </div>
 
             {/* Activity Log List */}
             <div className="p-6">
-              <h3 className="font-semibold mb-4">Activity History ({actionLogs.length})</h3>
+              <h3 className="font-semibold mb-4">{t('goalGrid.activityHistory', { count: actionLogs.length })}</h3>
               {actionLogs.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No activity logged yet. Add your first entry above!</p>
+                <p className="text-gray-500 text-center py-8">{t('goalGrid.noActivityLogged')}</p>
               ) : (
                 <div className="space-y-3">
                   {actionLogs.map((log) => (
@@ -946,7 +948,7 @@ export default function GoalGrid() {
                 onClick={() => setShowLogModal(false)}
                 className="w-full px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
               >
-                Close
+                {t('common.close')}
               </button>
             </div>
           </div>
@@ -960,8 +962,8 @@ export default function GoalGrid() {
             <div className="p-6 border-b sticky top-0 bg-white">
               <div className="flex justify-between items-start">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Edit Goal Description</h2>
-                  <p className="text-sm text-gray-600 mt-1">Use markdown for formatting</p>
+                  <h2 className="text-2xl font-bold text-gray-900">{t('goalGrid.editGoalDescription')}</h2>
+                  <p className="text-sm text-gray-600 mt-1">{t('goalGrid.useMarkdownFormatting')}</p>
                 </div>
                 <button
                   onClick={() => setShowDescriptionModal(false)}
@@ -976,24 +978,18 @@ export default function GoalGrid() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Editor */}
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Markdown Editor</label>
+                  <label className="block text-sm font-semibold mb-2">{t('goalGrid.markdownEditor')}</label>
                   <textarea
                     value={descriptionForm}
                     onChange={(e) => setDescriptionForm(e.target.value)}
-                    placeholder="Enter your goal description in markdown...
-
-**Example:**
-- Use **bold** and *italic*
-- Create lists
-- Add [links](https://example.com)
-- And more!"
+                    placeholder={t('goalGrid.markdownPlaceholder')}
                     className="w-full h-96 px-4 py-3 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 {/* Preview */}
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Preview</label>
+                  <label className="block text-sm font-semibold mb-2">{t('common.preview')}</label>
                   <div className="w-full h-96 px-4 py-3 border border-gray-300 rounded-lg overflow-y-auto bg-gray-50">
                     {descriptionForm.trim() ? (
                       <div className="prose prose-sm max-w-none">
@@ -1002,7 +998,7 @@ export default function GoalGrid() {
                         </ReactMarkdown>
                       </div>
                     ) : (
-                      <p className="text-gray-400 italic">Preview will appear here...</p>
+                      <p className="text-gray-400 italic">{t('goalGrid.previewWillAppear')}</p>
                     )}
                   </div>
                 </div>
@@ -1014,13 +1010,13 @@ export default function GoalGrid() {
                 onClick={() => setShowDescriptionModal(false)}
                 className="flex-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleSaveDescription}
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               >
-                Save Description
+                {t('goalGrid.saveDescription')}
               </button>
             </div>
           </div>
@@ -1037,11 +1033,11 @@ export default function GoalGrid() {
                   <h2
                     className="text-2xl font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
                     onClick={() => handleUpdateSubGoal(selectedSubGoal)}
-                    title="Click to rename"
+                    title={t('goalGrid.clickToRename')}
                   >
                     {selectedSubGoal.title}
                   </h2>
-                  <p className="text-sm text-gray-600 mt-1">Manage Actions · <span className="text-blue-500 cursor-pointer hover:underline" onClick={() => handleUpdateSubGoal(selectedSubGoal)}>Rename</span></p>
+                  <p className="text-sm text-gray-600 mt-1">{t('goalGrid.manageActions')}<span className="text-blue-500 cursor-pointer hover:underline" onClick={() => handleUpdateSubGoal(selectedSubGoal)}>{t('common.rename')}</span></p>
                 </div>
                 <button
                   onClick={() => setShowSubGoalModal(false)}
@@ -1054,7 +1050,7 @@ export default function GoalGrid() {
 
             {/* Actions List */}
             <div className="p-6">
-              <h3 className="font-semibold mb-4">Actions ({selectedSubGoal.actions.length}/8)</h3>
+              <h3 className="font-semibold mb-4">{t('goalGrid.actionsOf8', { count: selectedSubGoal.actions.length })}</h3>
               <div className="space-y-2">
                 {Array.from({ length: 8 }, (_, i) => i + 1).map((position) => {
                   const action = selectedSubGoal.actions.find(a => a.position === position);
@@ -1080,13 +1076,13 @@ export default function GoalGrid() {
                               onClick={() => handleUpdateAction(action)}
                               className="text-blue-600 hover:text-blue-800 text-sm px-2 py-1"
                             >
-                              Rename
+                              {t('common.rename')}
                             </button>
                             <button
                               onClick={() => setConfirmDeleteAction(action)}
                               className="text-red-600 hover:text-red-800 text-sm px-2 py-1"
                             >
-                              Delete
+                              {t('common.delete')}
                             </button>
                           </div>
                         </div>
@@ -1102,7 +1098,7 @@ export default function GoalGrid() {
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-semibold text-gray-400 w-6">#{position}</span>
-                        <span className="text-gray-500 text-sm">+ Add action</span>
+                        <span className="text-gray-500 text-sm">{t('goalGrid.addActionButton')}</span>
                       </div>
                     </div>
                   );
@@ -1120,7 +1116,7 @@ export default function GoalGrid() {
                 onClick={() => setShowSubGoalModal(false)}
                 className="w-full px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
               >
-                Close
+                {t('common.close')}
               </button>
             </div>
           </div>
@@ -1130,9 +1126,9 @@ export default function GoalGrid() {
       {/* Confirm Delete Action Modal */}
       {confirmDeleteAction && selectedSubGoal && (
         <ConfirmModal
-          title="Delete Action"
-          message={`Delete action "${confirmDeleteAction.title}"? This cannot be undone.`}
-          confirmLabel="Delete"
+          title={t('goalGrid.deleteActionTitle')}
+          message={t('goalGrid.deleteActionMessage', { title: confirmDeleteAction.title })}
+          confirmLabel={t('common.delete')}
           onConfirm={async () => {
             try {
               await api.deleteAction(confirmDeleteAction.id);

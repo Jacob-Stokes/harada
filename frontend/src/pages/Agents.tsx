@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { API_URL } from '../api/client';
 
 interface AgentBriefResponse {
@@ -33,6 +34,7 @@ interface AgentBriefResponse {
 }
 
 export default function Agents() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [brief, setBrief] = useState<AgentBriefResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,6 @@ export default function Agents() {
   const [apiKey, setApiKey] = useState<string>('');
 
   useEffect(() => {
-    // Check for API key in URL params first, otherwise leave empty for manual entry
     const urlApiKey = searchParams.get('apiKey');
     if (urlApiKey) {
       setApiKey(urlApiKey);
@@ -64,7 +65,7 @@ export default function Agents() {
         });
 
         if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+          throw new Error(t('agents.apiError', { status: response.status }));
         }
 
         const result = await response.json();
@@ -89,20 +90,20 @@ export default function Agents() {
 
   const renderGoalOverview = () => {
     if (!brief || brief.goals.length === 0) {
-      return <p className="text-gray-500">No goals defined yet.</p>;
+      return <p className="text-gray-500">{t('agents.noGoals')}</p>;
     }
     return brief.goals.map((goal) => (
       <div key={goal.id} className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <h3 className="text-xl font-semibold text-gray-900">{goal.title}</h3>
-            <p className="text-sm text-gray-500 capitalize">Status: {goal.status}</p>
+            <p className="text-sm text-gray-500 capitalize">{t('common.status')}{goal.status}</p>
           </div>
           <Link
             to={`/goal/${goal.id}`}
             className="text-sm text-blue-600 hover:underline"
           >
-            Open in app →
+            {t('agents.openInApp')}
           </Link>
         </div>
         <div className="mt-3 grid gap-2">
@@ -116,12 +117,12 @@ export default function Agents() {
                   #{sg.position} {sg.title}
                 </span>
                 <span className="text-gray-500 text-xs">
-                  {sg.actions.length}/8 actions
+                  {sg.actions.length}{t('agents.actionsCount')}
                 </span>
               </div>
               {sg.actions.length > 0 && (
                 <div className="text-xs text-gray-600 line-clamp-2">
-                  {sg.actions.map((action) => action.title).join(' • ')}
+                  {sg.actions.map((action) => action.title).join(' \u2022 ')}
                 </div>
               )}
             </div>
@@ -136,41 +137,41 @@ export default function Agents() {
       <div className="container mx-auto px-4 py-10 max-w-5xl">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <p className="text-sm text-blue-600">xharada · Agent Briefing</p>
+            <p className="text-sm text-blue-600">{t('agents.agentBriefing')}</p>
             <h1 className="text-4xl font-bold text-gray-900">
-              {brief?.overview.title || 'Agent Landing Page'}
+              {brief?.overview.title || t('agents.agentLandingPage')}
             </h1>
             <p className="text-gray-600 mt-2 max-w-3xl">
-              {brief?.overview.description || 'Loading briefing information...'}
+              {brief?.overview.description || t('agents.loadingBriefing')}
             </p>
           </div>
           <Link
             to="/settings"
             className="px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700"
           >
-            Manage API Keys
+            {t('agents.manageApiKeys')}
           </Link>
         </div>
 
         {!apiKey && (
           <div className="mt-6 bg-blue-50 border border-blue-200 p-6 rounded-lg">
-            <h3 className="text-lg font-semibold text-blue-900 mb-3">Provide an API Key</h3>
+            <h3 className="text-lg font-semibold text-blue-900 mb-3">{t('agents.provideApiKey')}</h3>
             <p className="text-sm text-blue-700 mb-4">
-              Enter your API key below or add it to the URL as <code className="bg-blue-100 px-1 rounded">?apiKey=YOUR_KEY</code>
+              {t('agents.apiKeyInstructions')}<code className="bg-blue-100 px-1 rounded">{t('agents.apiKeyParam')}</code>
             </p>
             <div className="flex gap-3">
               <input
                 type="text"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Paste your API key here..."
+                placeholder={t('agents.pasteApiKeyPlaceholder')}
                 className="flex-1 px-4 py-2 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <Link
                 to="/settings"
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
               >
-                Get API Key
+                {t('agents.getApiKey')}
               </Link>
             </div>
           </div>
@@ -184,21 +185,20 @@ export default function Agents() {
 
         {loading ? (
           <div className="mt-8 bg-white rounded-lg border border-gray-200 p-6 text-gray-500">
-            Loading agent brief…
+            {t('agents.loadingAgentBrief')}
           </div>
         ) : apiKey && brief ? (
           <>
-            {/* Guidance and API Info - BEFORE Goals */}
             <section className="mt-10 grid lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-lg shadow border border-gray-200 p-6 space-y-4">
-                <h3 className="text-xl font-semibold text-gray-900">API Information</h3>
+                <h3 className="text-xl font-semibold text-gray-900">{t('agents.apiInformation')}</h3>
                 <div className="text-sm text-gray-600 space-y-2">
                   <p>
-                    Base URL: <code className="bg-gray-100 px-1 rounded">{brief.api.baseUrl}</code>
+                    {t('agents.baseUrl')}<code className="bg-gray-100 px-1 rounded">{brief.api.baseUrl}</code>
                   </p>
-                  <p>Include the API key in the <code>x-api-key</code> header.</p>
+                  <p>{t('agents.apiKeyHeader')}<code>{t('agents.xApiKeyHeader')}</code>{t('agents.headerSuffix')}</p>
                   <p>
-                    Recommended endpoint: <code className="bg-gray-100 px-1 rounded">{brief.api.summaryEndpoint}</code>
+                    {t('agents.recommendedEndpoint')}<code className="bg-gray-100 px-1 rounded">{brief.api.summaryEndpoint}</code>
                   </p>
                 </div>
                 <pre className="bg-gray-900 text-green-300 text-xs p-3 rounded overflow-x-auto">
@@ -207,19 +207,19 @@ export default function Agents() {
                 </pre>
               </div>
               <div className="bg-white rounded-lg shadow border border-gray-200 p-6 space-y-4">
-                <h3 className="text-xl font-semibold text-gray-900">Framework Overview</h3>
+                <h3 className="text-xl font-semibold text-gray-900">{t('agents.frameworkOverview')}</h3>
                 <p className="text-sm text-gray-600">
                   {brief.overview.framework}
                 </p>
                 <p className="text-xs text-gray-500">
-                  Generated: {new Date(brief.generatedAt).toLocaleString()}
+                  {t('agents.generated')}{new Date(brief.generatedAt).toLocaleString()}
                 </p>
               </div>
             </section>
 
             <section className="mt-10 grid lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-xl font-semibold mb-3">Workflow Suggestions</h3>
+                <h3 className="text-xl font-semibold mb-3">{t('agents.workflowSuggestions')}</h3>
                 <ol className="list-decimal list-inside text-sm text-gray-600 space-y-2">
                   {brief.guidance.workflow.map((item, idx) => (
                     <li key={idx}>{item}</li>
@@ -227,7 +227,7 @@ export default function Agents() {
                 </ol>
               </div>
               <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-3">
-                <h3 className="text-xl font-semibold">Etiquette</h3>
+                <h3 className="text-xl font-semibold">{t('agents.etiquette')}</h3>
                 <ul className="list-disc list-inside text-sm text-gray-600 space-y-2">
                   {brief.guidance.etiquette.map((item, idx) => (
                     <li key={idx}>{item}</li>
@@ -236,9 +236,8 @@ export default function Agents() {
               </div>
             </section>
 
-            {/* Goals - AFTER Guidance and API */}
             <section className="mt-10 space-y-4">
-              <h2 className="text-2xl font-semibold text-gray-900">Current Goals</h2>
+              <h2 className="text-2xl font-semibold text-gray-900">{t('agents.currentGoals')}</h2>
               <div className="space-y-4">{renderGoalOverview()}</div>
             </section>
           </>
