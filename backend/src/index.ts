@@ -9,10 +9,11 @@ import userRouter from './routes/user';
 import logsRouter from './routes/logs';
 import authRouter from './routes/auth';
 import guestbookRouter from './routes/guestbook';
-import { requireAuth, optionalAuth } from './middleware/auth';
+import { requireAuth, optionalAuth, requireAdmin } from './middleware/auth';
 import agentsRouter from './routes/agents';
 import { shareManagementRouter, sharePublicRouter } from './routes/share';
 import etiquetteRouter from './routes/etiquette';
+import adminRouter from './routes/admin';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -126,6 +127,7 @@ app.use('/api/agents', optionalAuth, agentsRouter);
 app.use('/api/share', requireAuth, shareManagementRouter);
 app.use('/api/shared', sharePublicRouter);
 app.use('/api/etiquette', requireAuth, etiquetteRouter);
+app.use('/api/admin', requireAuth, requireAdmin, adminRouter);
 
 // Start server
 app.listen(PORT, () => {

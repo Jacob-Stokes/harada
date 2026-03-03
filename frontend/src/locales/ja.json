@@ -20,7 +20,8 @@
     "status": "ステータス：",
     "created": "作成日：",
     "rename": "名前変更",
-    "back": "戻る"
+    "back": "戻る",
+    "optional": "任意"
   },
 
   "app": {
@@ -34,7 +35,7 @@
     "password": "パスワード",
     "signIn": "サインイン",
     "signingIn": "サインイン中...",
-    "firstTime": "初めての方は管理者にアカウント作成をご依頼ください。",
+    "firstTime": "アカウントが必要な場合は管理者にお問い合わせください。",
     "loginFailed": "ログインに失敗しました",
     "connectionFailed": "サーバーへの接続に失敗しました"
   },
@@ -371,5 +372,31 @@
     "rainbow": "レインボー",
     "pastel": "パステル",
     "mono": "グレースケール"
+  },
+
+  "admin": {
+    "tabAdmin": "管理",
+    "userManagement": "ユーザー管理",
+    "createUser": "ユーザーを作成",
+    "username": "ユーザー名",
+    "password": "パスワード",
+    "email": "メールアドレス",
+    "role": "役割",
+    "actions": "操作",
+    "created": "作成日",
+    "you": "あなた",
+    "adminBadge": "管理者",
+    "userBadge": "ユーザー",
+    "grantAdmin": "管理者権限を付与",
+    "makeAdmin": "管理者にする",
+    "removeAdmin": "管理者を解除",
+    "resetPassword": "パスワードをリセット",
+    "newPassword": "新しいパスワード",
+    "passwordReset": "パスワードがリセットされました。",
+    "userCreated": "ユーザーが正常に作成されました。",
+    "userDeleted": "ユーザーが正常に削除されました。",
+    "deleteUserTitle": "ユーザーを削除",
+    "deleteUserMessage": "ユーザー「{{username}}」を削除しますか？すべてのデータが完全に削除されます。",
+    "showingRange": "{{total}}人中{{start}}〜{{end}}人を表示"
   }
 }

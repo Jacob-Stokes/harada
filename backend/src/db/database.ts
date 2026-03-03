@@ -185,6 +185,19 @@ export function initDatabase() {
     console.log('Migration check (allow_query_param_auth):', err);
   }
 
+  // Migration: Add is_admin to users table and promote first user
+  try {
+    const adminCols = db.prepare("PRAGMA table_info(users)").all() as any[];
+    if (!adminCols.some((col: any) => col.name === 'is_admin')) {
+      db.exec(`ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0`);
+      // Promote the first (oldest) user to admin
+      db.exec(`UPDATE users SET is_admin = 1 WHERE id = (SELECT id FROM users ORDER BY created_at ASC LIMIT 1)`);
+      console.log('Added is_admin column and promoted first user to admin');
+    }
+  } catch (err) {
+    console.log('Migration check (is_admin):', err);
+  }
+
   // Migration: Seed default agent etiquette for existing users
   try {
     const users = db.prepare('SELECT id FROM users').all() as any[];

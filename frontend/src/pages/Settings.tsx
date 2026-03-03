@@ -34,7 +34,7 @@ export default function Settings() {
   const [confirmDeleteKeyId, setConfirmDeleteKeyId] = useState<{ id: string; name: string } | null>(null);
   const [keyCopied, setKeyCopied] = useState(false);
   const [allowQueryParamAuth, setAllowQueryParamAuth] = useState(true);
-  const [activeTab, setActiveTab] = useState<'api' | 'display' | 'data' | 'etiquette'>('api');
+  const [activeTab, setActiveTab] = useState<'api' | 'display' | 'data' | 'etiquette' | 'admin'>('api');
   const [apiSubTab, setApiSubTab] = useState<'keys' | 'security' | 'docs'>('keys');
   const [keysPage, setKeysPage] = useState(1);
   const KEYS_PER_PAGE = 5;
@@ -51,6 +51,22 @@ export default function Settings() {
   const [editingEtiquetteId, setEditingEtiquetteId] = useState<string | null>(null);
   const [editingEtiquetteContent, setEditingEtiquetteContent] = useState('');
   const [confirmResetEtiquette, setConfirmResetEtiquette] = useState(false);
+
+  // Admin state
+  const [currentUser, setCurrentUser] = useState<{ id: string; username: string; is_admin: boolean } | null>(null);
+  const [adminUsers, setAdminUsers] = useState<{ id: string; username: string; email: string | null; is_admin: number; created_at: string }[]>([]);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newIsAdmin, setNewIsAdmin] = useState(false);
+  const [adminNotice, setAdminNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<{ id: string; username: string } | null>(null);
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
+  const [adminUsersPage, setAdminUsersPage] = useState(1);
+  const ADMIN_USERS_PER_PAGE = 10;
   const {
     settings: displaySettings,
     updateSettings: updateDisplaySettings,
@@ -77,6 +93,7 @@ export default function Settings() {
   useEffect(() => {
     loadKeys();
     loadSettings();
+    loadCurrentUser();
   }, []);
 
   useEffect(() => {
@@ -85,6 +102,9 @@ export default function Settings() {
     }
     if (activeTab === 'etiquette' && etiquetteRules.length === 0 && !etiquetteLoading) {
       loadEtiquette();
+    }
+    if (activeTab === 'admin' && adminUsers.length === 0 && !adminLoading && currentUser?.is_admin) {
+      loadAdminUsers();
     }
   }, [activeTab]);
 
@@ -213,6 +233,111 @@ export default function Settings() {
       setError((err as Error).message);
     }
   };
+
+  // Admin functions
+  const loadCurrentUser = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
+      const data = await response.json();
+      if (data.success) {
+        setCurrentUser(data.data);
+      }
+    } catch {}
+  };
+
+  const loadAdminUsers = async () => {
+    try {
+      setAdminLoading(true);
+      const response = await fetch(`${API_URL}/api/admin/users`, { credentials: 'include' });
+      const data = await response.json();
+      if (data.success) {
+        setAdminUsers(data.data);
+      }
+    } catch (err) {
+      setAdminNotice({ type: 'error', message: (err as Error).message });
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
+  const handleCreateUser = async (e: FormEvent) => {
+    e.preventDefault();
+    setAdminNotice(null);
+    try {
+      const response = await fetch(`${API_URL}/api/admin/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username: newUsername, password: newPassword, email: newEmail || undefined, is_admin: newIsAdmin }),
+      });
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error);
+      setAdminNotice({ type: 'success', message: t('admin.userCreated') });
+      setNewUsername(''); setNewPassword(''); setNewEmail(''); setNewIsAdmin(false); setShowCreateUser(false);
+      loadAdminUsers();
+    } catch (err) {
+      setAdminNotice({ type: 'error', message: (err as Error).message });
+    }
+  };
+
+  const handleToggleAdmin = async (userId: string, makeAdmin: boolean) => {
+    setAdminNotice(null);
+    try {
+      const response = await fetch(`${API_URL}/api/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ is_admin: makeAdmin }),
+      });
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error);
+      loadAdminUsers();
+    } catch (err) {
+      setAdminNotice({ type: 'error', message: (err as Error).message });
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetPasswordUserId || !resetPasswordValue) return;
+    setAdminNotice(null);
+    try {
+      const response = await fetch(`${API_URL}/api/admin/users/${resetPasswordUserId}/password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ password: resetPasswordValue }),
+      });
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error);
+      setAdminNotice({ type: 'success', message: t('admin.passwordReset') });
+      setResetPasswordUserId(null); setResetPasswordValue('');
+    } catch (err) {
+      setAdminNotice({ type: 'error', message: (err as Error).message });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    setAdminNotice(null);
+    try {
+      const response = await fetch(`${API_URL}/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error);
+      setAdminNotice({ type: 'success', message: t('admin.userDeleted') });
+      setConfirmDeleteUserId(null);
+      loadAdminUsers();
+    } catch (err) {
+      setAdminNotice({ type: 'error', message: (err as Error).message });
+    }
+  };
+
+  const paginatedAdminUsers = adminUsers.slice(
+    (adminUsersPage - 1) * ADMIN_USERS_PER_PAGE,
+    adminUsersPage * ADMIN_USERS_PER_PAGE
+  );
+  const adminTotalPages = Math.max(1, Math.ceil(adminUsers.length / ADMIN_USERS_PER_PAGE));
 
   const handleCreateKey = async (e: FormEvent) => {
     e.preventDefault();
@@ -440,6 +565,18 @@ export default function Settings() {
           >
             {t('settings.tabEtiquette')}
           </button>
+          {currentUser?.is_admin && (
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                activeTab === 'admin'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              {t('admin.tabAdmin')}
+            </button>
+          )}
         </div>
 
         {error && (
@@ -1274,6 +1411,221 @@ curl -X POST "$API_URL/api/guestbook" \\
           </div>
         )}
       </div>
+
+      {/* Admin Tab */}
+        {activeTab === 'admin' && currentUser?.is_admin && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold">{t('admin.userManagement')}</h2>
+              <button
+                onClick={() => setShowCreateUser(!showCreateUser)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+              >
+                {showCreateUser ? t('common.cancel') : t('admin.createUser')}
+              </button>
+            </div>
+
+            {adminNotice && (
+              <div className={`px-4 py-3 rounded text-sm ${
+                adminNotice.type === 'success' ? 'bg-green-100 text-green-700 border border-green-400' : 'bg-red-100 text-red-700 border border-red-400'
+              }`}>
+                {adminNotice.message}
+              </div>
+            )}
+
+            {/* Create User Form */}
+            {showCreateUser && (
+              <form onSubmit={handleCreateUser} className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.username')}</label>
+                    <input
+                      type="text"
+                      value={newUsername}
+                      onChange={(e) => setNewUsername(e.target.value)}
+                      required
+                      minLength={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.password')}</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.email')} ({t('common.optional')})</label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="newIsAdmin"
+                    checked={newIsAdmin}
+                    onChange={(e) => setNewIsAdmin(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <label htmlFor="newIsAdmin" className="text-sm text-gray-700">{t('admin.grantAdmin')}</label>
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                >
+                  {t('admin.createUser')}
+                </button>
+              </form>
+            )}
+
+            {/* User List */}
+            {adminLoading ? (
+              <p className="text-gray-500">{t('common.loading')}</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">{t('admin.username')}</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">{t('admin.email')}</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">{t('admin.role')}</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">{t('admin.created')}</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-600">{t('admin.actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedAdminUsers.map((user) => (
+                      <tr key={user.id} className="border-b hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium">
+                          {user.username}
+                          {user.id === currentUser?.id && (
+                            <span className="ml-2 text-xs text-blue-600">({t('admin.you')})</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500">{user.email || '—'}</td>
+                        <td className="px-4 py-3">
+                          {user.is_admin ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                              {t('admin.adminBadge')}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                              {t('admin.userBadge')}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500">{new Date(user.created_at).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex gap-2 justify-end">
+                            <button
+                              onClick={() => handleToggleAdmin(user.id, !user.is_admin)}
+                              disabled={user.id === currentUser?.id}
+                              className="text-xs px-2 py-1 border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              {user.is_admin ? t('admin.removeAdmin') : t('admin.makeAdmin')}
+                            </button>
+                            <button
+                              onClick={() => { setResetPasswordUserId(user.id); setResetPasswordValue(''); }}
+                              className="text-xs px-2 py-1 border rounded hover:bg-gray-50 text-amber-600"
+                            >
+                              {t('admin.resetPassword')}
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteUserId({ id: user.id, username: user.username })}
+                              disabled={user.id === currentUser?.id}
+                              className="text-xs px-2 py-1 border rounded hover:bg-gray-50 text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              {t('common.delete')}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Admin Users Pagination */}
+                {adminTotalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <p className="text-sm text-gray-500">
+                      {t('admin.showingRange', {
+                        start: (adminUsersPage - 1) * ADMIN_USERS_PER_PAGE + 1,
+                        end: Math.min(adminUsersPage * ADMIN_USERS_PER_PAGE, adminUsers.length),
+                        total: adminUsers.length,
+                      })}
+                    </p>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => setAdminUsersPage(p => Math.max(1, p - 1))}
+                        disabled={adminUsersPage === 1}
+                        className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {t('home.prev')}
+                      </button>
+                      <button
+                        onClick={() => setAdminUsersPage(p => Math.min(adminTotalPages, p + 1))}
+                        disabled={adminUsersPage === adminTotalPages}
+                        className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {t('home.next')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+      {/* Reset Password Modal */}
+      {resetPasswordUserId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+            <h3 className="text-lg font-bold mb-4">{t('admin.resetPassword')}</h3>
+            <input
+              type="password"
+              value={resetPasswordValue}
+              onChange={(e) => setResetPasswordValue(e.target.value)}
+              placeholder={t('admin.newPassword')}
+              minLength={6}
+              className="w-full px-3 py-2 border border-gray-300 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setResetPasswordUserId(null)} className="px-4 py-2 text-sm text-gray-600 border rounded hover:bg-gray-50">
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleResetPassword}
+                disabled={resetPasswordValue.length < 6}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                {t('admin.resetPassword')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete User Modal */}
+      {confirmDeleteUserId && (
+        <ConfirmModal
+          title={t('admin.deleteUserTitle')}
+          message={t('admin.deleteUserMessage', { username: confirmDeleteUserId.username })}
+          confirmLabel={t('common.delete')}
+          onConfirm={() => handleDeleteUser(confirmDeleteUserId.id)}
+          onCancel={() => setConfirmDeleteUserId(null)}
+        />
+      )}
 
       {/* Create Key Modal */}
       {showCreateModal && (

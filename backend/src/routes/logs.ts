@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { db, ActivityLog } from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
+import { actionOwnerCheck, ownedLog } from '../middleware/ownership';
 
 const router = Router();
 
@@ -8,7 +9,12 @@ const router = Router();
 router.get('/action/:actionId', (req: Request, res: Response) => {
   try {
     const { actionId } = req.params;
+    const userId = req.user!.id;
     const { startDate, endDate, type } = req.query;
+
+    if (!actionOwnerCheck(actionId, userId)) {
+      return res.status(404).json({ success: false, data: null, error: 'Action not found' });
+    }
 
     let query = 'SELECT * FROM activity_logs WHERE action_item_id = ?';
     const params: any[] = [actionId];
@@ -42,8 +48,9 @@ router.get('/action/:actionId', (req: Request, res: Response) => {
 router.get('/:logId', (req: Request, res: Response) => {
   try {
     const { logId } = req.params;
+    const userId = req.user!.id;
 
-    const log = db.prepare('SELECT * FROM activity_logs WHERE id = ?').get(logId) as ActivityLog | undefined;
+    const log = ownedLog(logId, userId) as ActivityLog | null;
 
     if (!log) {
       return res.status(404).json({ success: false, data: null, error: 'Log not found' });
@@ -59,6 +66,7 @@ router.get('/:logId', (req: Request, res: Response) => {
 router.post('/action/:actionId', (req: Request, res: Response) => {
   try {
     const { actionId } = req.params;
+    const userId = req.user!.id;
     const {
       log_type,
       content,
@@ -72,6 +80,10 @@ router.post('/action/:actionId', (req: Request, res: Response) => {
       mood,
       tags
     } = req.body;
+
+    if (!actionOwnerCheck(actionId, userId)) {
+      return res.status(404).json({ success: false, data: null, error: 'Action not found' });
+    }
 
     if (!log_type || !log_date) {
       return res.status(400).json({ success: false, data: null, error: 'log_type and log_date are required' });
@@ -113,6 +125,7 @@ router.post('/action/:actionId', (req: Request, res: Response) => {
 router.put('/:logId', (req: Request, res: Response) => {
   try {
     const { logId } = req.params;
+    const userId = req.user!.id;
     const {
       log_type,
       content,
@@ -127,9 +140,7 @@ router.put('/:logId', (req: Request, res: Response) => {
       tags
     } = req.body;
 
-    const log = db.prepare('SELECT * FROM activity_logs WHERE id = ?').get(logId);
-
-    if (!log) {
+    if (!ownedLog(logId, userId)) {
       return res.status(404).json({ success: false, data: null, error: 'Log not found' });
     }
 
@@ -163,6 +174,11 @@ router.put('/:logId', (req: Request, res: Response) => {
 router.delete('/:logId', (req: Request, res: Response) => {
   try {
     const { logId } = req.params;
+    const userId = req.user!.id;
+
+    if (!ownedLog(logId, userId)) {
+      return res.status(404).json({ success: false, data: null, error: 'Log not found' });
+    }
 
     const result = db.prepare('DELETE FROM activity_logs WHERE id = ?').run(logId);
 
@@ -180,6 +196,11 @@ router.delete('/:logId', (req: Request, res: Response) => {
 router.get('/action/:actionId/stats', (req: Request, res: Response) => {
   try {
     const { actionId } = req.params;
+    const userId = req.user!.id;
+
+    if (!actionOwnerCheck(actionId, userId)) {
+      return res.status(404).json({ success: false, data: null, error: 'Action not found' });
+    }
 
     const totalLogs = db.prepare('SELECT COUNT(*) as count FROM activity_logs WHERE action_item_id = ?')
       .get(actionId) as { count: number };

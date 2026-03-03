@@ -6,9 +6,17 @@ import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
-// Register new user (only for initial setup - you may want to disable this in production)
+// Register first user only (when no users exist — initial setup)
 router.post('/register', (req, res) => {
   try {
+    const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as any;
+    if (userCount.count > 0) {
+      return res.status(403).json({
+        success: false,
+        error: 'Registration is disabled. Contact an administrator to create your account.'
+      });
+    }
+
     const { username, password, email } = req.body;
 
     if (!username || !password) {
@@ -18,23 +26,12 @@ router.post('/register', (req, res) => {
       });
     }
 
-    // Check if user already exists
-    const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        error: 'Username already exists'
-      });
-    }
-
-    // Hash password
     const passwordHash = bcrypt.hashSync(password, 10);
 
-    // Create user
     const userId = uuidv4();
     db.prepare(`
-      INSERT INTO users (id, username, password_hash, email)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO users (id, username, password_hash, email, is_admin)
+      VALUES (?, ?, ?, ?, 1)
     `).run(userId, username, passwordHash, email || null);
 
     res.json({
@@ -42,7 +39,8 @@ router.post('/register', (req, res) => {
       data: {
         id: userId,
         username,
-        email
+        email,
+        is_admin: true
       }
     });
   } catch (error: any) {

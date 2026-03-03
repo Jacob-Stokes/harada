@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { db, SubGoal } from '../db/database';
+import { ownedSubGoal, goalOwnerCheck } from '../middleware/ownership';
 
 const router = Router();
 
@@ -7,8 +8,9 @@ const router = Router();
 router.get('/:subgoalId', (req: Request, res: Response) => {
   try {
     const { subgoalId } = req.params;
+    const userId = req.user!.id;
 
-    const subGoal = db.prepare('SELECT * FROM sub_goals WHERE id = ?').get(subgoalId) as SubGoal | undefined;
+    const subGoal = ownedSubGoal(subgoalId, userId) as SubGoal | null;
 
     if (!subGoal) {
       return res.status(404).json({ success: false, data: null, error: 'Sub-goal not found' });
@@ -26,9 +28,10 @@ router.get('/:subgoalId', (req: Request, res: Response) => {
 router.put('/:subgoalId', (req: Request, res: Response) => {
   try {
     const { subgoalId } = req.params;
+    const userId = req.user!.id;
     const { title, description, position } = req.body;
 
-    const subGoal = db.prepare('SELECT * FROM sub_goals WHERE id = ?').get(subgoalId);
+    const subGoal = ownedSubGoal(subgoalId, userId);
 
     if (!subGoal) {
       return res.status(404).json({ success: false, data: null, error: 'Sub-goal not found' });
@@ -56,13 +59,14 @@ router.put('/:subgoalId', (req: Request, res: Response) => {
 router.post('/:subgoalId/reorder', (req: Request, res: Response) => {
   try {
     const { subgoalId } = req.params;
+    const userId = req.user!.id;
     const { targetPosition } = req.body as { targetPosition?: number };
 
     if (!targetPosition || targetPosition < 1 || targetPosition > 8) {
       return res.status(400).json({ success: false, data: null, error: 'targetPosition must be 1-8' });
     }
 
-    const subGoal = db.prepare('SELECT * FROM sub_goals WHERE id = ?').get(subgoalId) as SubGoal | undefined;
+    const subGoal = ownedSubGoal(subgoalId, userId) as SubGoal | null;
 
     if (!subGoal) {
       return res.status(404).json({ success: false, data: null, error: 'Sub-goal not found' });
@@ -120,11 +124,15 @@ router.post('/:subgoalId/reorder', (req: Request, res: Response) => {
   }
 });
 
-// Reorder sub-goal positions within a goal
 // Delete sub-goal
 router.delete('/:subgoalId', (req: Request, res: Response) => {
   try {
     const { subgoalId } = req.params;
+    const userId = req.user!.id;
+
+    if (!ownedSubGoal(subgoalId, userId)) {
+      return res.status(404).json({ success: false, data: null, error: 'Sub-goal not found' });
+    }
 
     const result = db.prepare('DELETE FROM sub_goals WHERE id = ?').run(subgoalId);
 
@@ -142,6 +150,11 @@ router.delete('/:subgoalId', (req: Request, res: Response) => {
 router.get('/:subgoalId/actions', (req: Request, res: Response) => {
   try {
     const { subgoalId } = req.params;
+    const userId = req.user!.id;
+
+    if (!ownedSubGoal(subgoalId, userId)) {
+      return res.status(404).json({ success: false, data: null, error: 'Sub-goal not found' });
+    }
 
     const actions = db.prepare('SELECT * FROM action_items WHERE sub_goal_id = ? ORDER BY position').all(subgoalId);
 
@@ -155,7 +168,12 @@ router.get('/:subgoalId/actions', (req: Request, res: Response) => {
 router.post('/:subgoalId/actions', (req: Request, res: Response) => {
   try {
     const { subgoalId } = req.params;
+    const userId = req.user!.id;
     const { position, title, description, due_date } = req.body;
+
+    if (!ownedSubGoal(subgoalId, userId)) {
+      return res.status(404).json({ success: false, data: null, error: 'Sub-goal not found' });
+    }
 
     if (!title || !position) {
       return res.status(400).json({ success: false, data: null, error: 'Title and position are required' });

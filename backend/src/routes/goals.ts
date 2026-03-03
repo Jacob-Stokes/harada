@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { db, PrimaryGoal, SubGoal, ActionItem, ActivityLog } from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
+import { goalOwnerCheck } from '../middleware/ownership';
 
 const router = Router();
 
@@ -306,8 +307,9 @@ router.get('/:goalId', (req: Request, res: Response) => {
 router.get('/:goalId/tree', (req: Request, res: Response) => {
   try {
     const { goalId } = req.params;
+    const userId = req.user?.id;
 
-    const goal = db.prepare('SELECT * FROM primary_goals WHERE id = ?').get(goalId) as PrimaryGoal | undefined;
+    const goal = db.prepare('SELECT * FROM primary_goals WHERE id = ? AND user_id = ?').get(goalId, userId) as PrimaryGoal | undefined;
 
     if (!goal) {
       return res.status(404).json({ success: false, data: null, error: 'Goal not found' });
@@ -364,9 +366,10 @@ router.post('/', (req: Request, res: Response) => {
 router.put('/:goalId', (req: Request, res: Response) => {
   try {
     const { goalId } = req.params;
+    const userId = req.user?.id;
     const { title, description, target_date, status } = req.body;
 
-    const goal = db.prepare('SELECT * FROM primary_goals WHERE id = ?').get(goalId);
+    const goal = db.prepare('SELECT * FROM primary_goals WHERE id = ? AND user_id = ?').get(goalId, userId);
 
     if (!goal) {
       return res.status(404).json({ success: false, data: null, error: 'Goal not found' });
@@ -394,8 +397,9 @@ router.put('/:goalId', (req: Request, res: Response) => {
 router.delete('/:goalId', (req: Request, res: Response) => {
   try {
     const { goalId } = req.params;
+    const userId = req.user?.id;
 
-    const result = db.prepare('DELETE FROM primary_goals WHERE id = ?').run(goalId);
+    const result = db.prepare('DELETE FROM primary_goals WHERE id = ? AND user_id = ?').run(goalId, userId);
 
     if (result.changes === 0) {
       return res.status(404).json({ success: false, data: null, error: 'Goal not found' });
@@ -411,6 +415,11 @@ router.delete('/:goalId', (req: Request, res: Response) => {
 router.get('/:goalId/subgoals', (req: Request, res: Response) => {
   try {
     const { goalId } = req.params;
+    const userId = req.user?.id;
+
+    if (!goalOwnerCheck(goalId, userId!)) {
+      return res.status(404).json({ success: false, data: null, error: 'Goal not found' });
+    }
 
     const subGoals = db.prepare('SELECT * FROM sub_goals WHERE primary_goal_id = ? ORDER BY position').all(goalId);
 
@@ -424,7 +433,12 @@ router.get('/:goalId/subgoals', (req: Request, res: Response) => {
 router.post('/:goalId/subgoals', (req: Request, res: Response) => {
   try {
     const { goalId } = req.params;
+    const userId = req.user?.id;
     const { position, title, description } = req.body;
+
+    if (!goalOwnerCheck(goalId, userId!)) {
+      return res.status(404).json({ success: false, data: null, error: 'Goal not found' });
+    }
 
     if (!title || !position) {
       return res.status(400).json({ success: false, data: null, error: 'Title and position are required' });

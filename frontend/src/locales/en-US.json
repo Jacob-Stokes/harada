@@ -20,7 +20,8 @@
     "status": "Status: ",
     "created": "Created: ",
     "rename": "Rename",
-    "back": "Back"
+    "back": "Back",
+    "optional": "optional"
   },
 
   "app": {
@@ -34,7 +35,7 @@
     "password": "Password",
     "signIn": "Sign In",
     "signingIn": "Signing in...",
-    "firstTime": "First time? Contact admin to create an account.",
+    "firstTime": "Need an account? Ask your administrator.",
     "loginFailed": "Login failed",
     "connectionFailed": "Failed to connect to server"
   },
@@ -371,5 +372,31 @@
     "rainbow": "Rainbow",
     "pastel": "Pastel",
     "mono": "Grayscale"
+  },
+
+  "admin": {
+    "tabAdmin": "Admin",
+    "userManagement": "User Management",
+    "createUser": "Create User",
+    "username": "Username",
+    "password": "Password",
+    "email": "Email",
+    "role": "Role",
+    "actions": "Actions",
+    "created": "Created",
+    "you": "you",
+    "adminBadge": "Admin",
+    "userBadge": "User",
+    "grantAdmin": "Grant admin privileges",
+    "makeAdmin": "Make Admin",
+    "removeAdmin": "Remove Admin",
+    "resetPassword": "Reset Password",
+    "newPassword": "New password",
+    "passwordReset": "Password has been reset.",
+    "userCreated": "User created successfully.",
+    "userDeleted": "User deleted successfully.",
+    "deleteUserTitle": "Delete User",
+    "deleteUserMessage": "Are you sure you want to delete user \"{{username}}\"? All their data will be permanently removed.",
+    "showingRange": "Showing {{start}}–{{end}} of {{total}} users"
   }
 }

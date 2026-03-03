@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { db, ActionItem } from '../db/database';
+import { ownedAction } from '../middleware/ownership';
 
 const router = Router();
 
@@ -7,8 +8,9 @@ const router = Router();
 router.get('/:actionId', (req: Request, res: Response) => {
   try {
     const { actionId } = req.params;
+    const userId = req.user!.id;
 
-    const action = db.prepare('SELECT * FROM action_items WHERE id = ?').get(actionId) as ActionItem | undefined;
+    const action = ownedAction(actionId, userId) as ActionItem | null;
 
     if (!action) {
       return res.status(404).json({ success: false, data: null, error: 'Action item not found' });
@@ -24,11 +26,10 @@ router.get('/:actionId', (req: Request, res: Response) => {
 router.put('/:actionId', (req: Request, res: Response) => {
   try {
     const { actionId } = req.params;
+    const userId = req.user!.id;
     const { title, description, position, due_date } = req.body;
 
-    const action = db.prepare('SELECT * FROM action_items WHERE id = ?').get(actionId);
-
-    if (!action) {
+    if (!ownedAction(actionId, userId)) {
       return res.status(404).json({ success: false, data: null, error: 'Action item not found' });
     }
 
@@ -54,13 +55,14 @@ router.put('/:actionId', (req: Request, res: Response) => {
 router.post('/:actionId/reorder', (req: Request, res: Response) => {
   try {
     const { actionId } = req.params;
+    const userId = req.user!.id;
     const { targetPosition } = req.body as { targetPosition?: number };
 
     if (!targetPosition || targetPosition < 1 || targetPosition > 8) {
       return res.status(400).json({ success: false, data: null, error: 'targetPosition must be 1-8' });
     }
 
-    const action = db.prepare('SELECT * FROM action_items WHERE id = ?').get(actionId) as ActionItem | undefined;
+    const action = ownedAction(actionId, userId) as ActionItem | null;
 
     if (!action) {
       return res.status(404).json({ success: false, data: null, error: 'Action item not found' });
@@ -85,7 +87,7 @@ router.post('/:actionId/reorder', (req: Request, res: Response) => {
       }
 
       // Simple swap strategy using position -1 as temporary
-      // Step 1: Move source to 0 (temporary position)
+      // Step 1: Move source to -1 (temporary position)
       db.prepare('UPDATE action_items SET position = -1, updated_at = ? WHERE id = ?').run(
         now,
         action.id
@@ -118,13 +120,13 @@ router.post('/:actionId/reorder', (req: Request, res: Response) => {
   }
 });
 
-// Reorder an action within its sub-goal
 // Toggle completion status
 router.patch('/:actionId/complete', (req: Request, res: Response) => {
   try {
     const { actionId } = req.params;
+    const userId = req.user!.id;
 
-    const action = db.prepare('SELECT * FROM action_items WHERE id = ?').get(actionId) as ActionItem | undefined;
+    const action = ownedAction(actionId, userId) as ActionItem | null;
 
     if (!action) {
       return res.status(404).json({ success: false, data: null, error: 'Action item not found' });
@@ -154,6 +156,11 @@ router.patch('/:actionId/complete', (req: Request, res: Response) => {
 router.delete('/:actionId', (req: Request, res: Response) => {
   try {
     const { actionId } = req.params;
+    const userId = req.user!.id;
+
+    if (!ownedAction(actionId, userId)) {
+      return res.status(404).json({ success: false, data: null, error: 'Action item not found' });
+    }
 
     const result = db.prepare('DELETE FROM action_items WHERE id = ?').run(actionId);
 
