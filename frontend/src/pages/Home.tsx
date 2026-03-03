@@ -82,13 +82,11 @@ export default function Home() {
 
   const getAgentLandingUrl = (format?: 'json') => {
     if (!pastedApiKey.trim()) return '';
-    const baseUrl = window.location.origin;
-    const base = `${baseUrl}/agents`;
-    const params = new URLSearchParams({ apiKey: pastedApiKey });
     if (format === 'json') {
-      params.set('format', 'json');
+      return `${API_URL}/api/agents/brief?apiKey=${encodeURIComponent(pastedApiKey)}`;
     }
-    return `${base}?${params.toString()}`;
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/agents?apiKey=${encodeURIComponent(pastedApiKey)}`;
   };
 
   const handleCopyUrl = () => {
@@ -347,7 +345,7 @@ export default function Home() {
                       </div>
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
-                      Share the UI link with browser-based agents. Use the JSON link for CLI agents that want raw data.
+                      Share the UI link with browser-based agents. The JSON link returns raw API data directly — works with CLI agents, MCP, curl, etc.
                     </p>
                   </div>
 

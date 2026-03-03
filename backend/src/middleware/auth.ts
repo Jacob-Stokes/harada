@@ -14,8 +14,8 @@ declare module 'express-serve-static-core' {
 
 // Middleware to check if user is authenticated via session OR API key
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  // Check for API key in header first
-  const apiKey = req.headers['x-api-key'] as string;
+  // Check for API key in header first, then query param
+  const apiKey = (req.headers['x-api-key'] as string) || (req.query.apiKey as string);
 
   if (apiKey) {
     // Validate API key - extract key ID from format: {uuid}-{randomstring}
@@ -70,7 +70,7 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
 
 // Optional auth - sets user if authenticated but doesn't require it
 export const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
-  const apiKey = req.headers['x-api-key'] as string;
+  const apiKey = (req.headers['x-api-key'] as string) || (req.query.apiKey as string);
 
   if (apiKey) {
     const keyId = apiKey.substring(0, 36);
