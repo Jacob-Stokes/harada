@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Guestbook from '../components/Guestbook';
 import ShareGoalModal from '../components/ShareGoalModal';
+import ConfirmModal from '../components/ConfirmModal';
 import { useDisplaySettings } from '../context/DisplaySettingsContext';
 import { getReadableTextColor, lightenColor } from '../utils/color';
 
@@ -77,6 +78,7 @@ export default function GoalGrid() {
   const [textModalError, setTextModalError] = useState<string | null>(null);
   const [textModalSubmitting, setTextModalSubmitting] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [confirmDeleteAction, setConfirmDeleteAction] = useState<ActionItem | null>(null);
   const subGoalCardRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const actionSectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -1075,19 +1077,7 @@ export default function GoalGrid() {
                               Rename
                             </button>
                             <button
-                              onClick={async () => {
-                                if (confirm(`Delete action "${action.title}"?`)) {
-                                  try {
-                                    await api.deleteAction(action.id);
-                                    loadGoal();
-                                    // Update selected sub-goal
-                                    const updated = goal?.subGoals.find(sg => sg.id === selectedSubGoal.id);
-                                    if (updated) setSelectedSubGoal(updated);
-                                  } catch (err) {
-                                    setError((err as Error).message);
-                                  }
-                                }
-                              }}
+                              onClick={() => setConfirmDeleteAction(action)}
                               className="text-red-600 hover:text-red-800 text-sm px-2 py-1"
                             >
                               Delete
@@ -1129,6 +1119,28 @@ export default function GoalGrid() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Confirm Delete Action Modal */}
+      {confirmDeleteAction && selectedSubGoal && (
+        <ConfirmModal
+          title="Delete Action"
+          message={`Delete action "${confirmDeleteAction.title}"? This cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={async () => {
+            try {
+              await api.deleteAction(confirmDeleteAction.id);
+              setConfirmDeleteAction(null);
+              await loadGoal();
+              const updated = goal?.subGoals.find(sg => sg.id === selectedSubGoal.id);
+              if (updated) setSelectedSubGoal(updated);
+            } catch (err) {
+              setError((err as Error).message);
+              setConfirmDeleteAction(null);
+            }
+          }}
+          onCancel={() => setConfirmDeleteAction(null)}
+        />
       )}
 
       {/* Share Goal Modal */}

@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Guestbook from '../components/Guestbook';
+import ConfirmModal from '../components/ConfirmModal';
 import { API_URL } from '../api/client';
 import { useDisplaySettings, paletteOptions, PaletteName } from '../context/DisplaySettingsContext';
 import { lightenColor } from '../utils/color';
@@ -28,6 +29,8 @@ export default function Settings() {
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyExpireDays, setNewKeyExpireDays] = useState('365');
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+  const [confirmDeleteKeyId, setConfirmDeleteKeyId] = useState<{ id: string; name: string } | null>(null);
+  const [keyCopied, setKeyCopied] = useState(false);
   const [allowQueryParamAuth, setAllowQueryParamAuth] = useState(true);
   const [activeTab, setActiveTab] = useState<'keys' | 'docs' | 'guestbook' | 'display' | 'data'>('keys');
   const [goalSummaries, setGoalSummaries] = useState<GoalSummary[]>([]);
@@ -278,9 +281,7 @@ export default function Settings() {
     }
   };
 
-  const handleDeleteKey = async (id: string, name: string) => {
-    if (!confirm(`Delete API key "${name}"? This cannot be undone.`)) return;
-
+  const handleDeleteKey = async (id: string) => {
     try {
       const response = await fetch(`${API_URL}/api/auth/api-keys/${id}`, {
         method: 'DELETE',
@@ -428,7 +429,7 @@ export default function Settings() {
                           </div>
                         </div>
                         <button
-                          onClick={() => handleDeleteKey(key.id, key.name)}
+                          onClick={() => setConfirmDeleteKeyId({ id: key.id, name: key.name })}
                           className="ml-4 px-3 py-1 text-sm text-red-600 hover:text-red-800 border border-red-300 rounded hover:bg-red-50"
                         >
                           Revoke
@@ -1078,12 +1079,13 @@ curl -X POST "$API_URL/api/guestbook" \\
 
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(generatedKey);
-                  alert('API key copied to clipboard!');
+                  navigator.clipboard.writeText(generatedKey!);
+                  setKeyCopied(true);
+                  setTimeout(() => setKeyCopied(false), 2000);
                 }}
                 className="w-full mt-4 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
               >
-                Copy to Clipboard
+                {keyCopied ? 'Copied!' : 'Copy to Clipboard'}
               </button>
             </div>
 
@@ -1100,6 +1102,19 @@ curl -X POST "$API_URL/api/guestbook" \\
             </div>
           </div>
         </div>
+      )}
+
+      {confirmDeleteKeyId && (
+        <ConfirmModal
+          title="Revoke API Key"
+          message={`Delete API key "${confirmDeleteKeyId.name}"? This cannot be undone.`}
+          confirmLabel="Revoke"
+          onConfirm={() => {
+            handleDeleteKey(confirmDeleteKeyId.id);
+            setConfirmDeleteKeyId(null);
+          }}
+          onCancel={() => setConfirmDeleteKeyId(null)}
+        />
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { api, API_URL } from '../api/client';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface Goal {
   id: string;
@@ -21,6 +22,7 @@ export default function Home() {
   const [creatingAgentKey, setCreatingAgentKey] = useState(false);
   const [agentKeyNotice, setAgentKeyNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [allowQueryParamAuth, setAllowQueryParamAuth] = useState(true);
+  const [confirmDeleteGoalId, setConfirmDeleteGoalId] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -55,8 +57,6 @@ export default function Home() {
   };
 
   const handleDeleteGoal = async (id: string) => {
-    if (!confirm('Delete this goal?')) return;
-
     try {
       await api.deleteGoal(id);
       loadGoals();
@@ -243,7 +243,7 @@ export default function Home() {
                         View Grid
                       </Link>
                       <button
-                        onClick={() => handleDeleteGoal(goal.id)}
+                        onClick={() => setConfirmDeleteGoalId(goal.id)}
                         className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm"
                       >
                         Delete
@@ -390,6 +390,19 @@ export default function Home() {
             </div>
           </div>
         </div>
+      )}
+
+      {confirmDeleteGoalId && (
+        <ConfirmModal
+          title="Delete Goal"
+          message="Are you sure you want to delete this goal? This cannot be undone."
+          confirmLabel="Delete"
+          onConfirm={() => {
+            handleDeleteGoal(confirmDeleteGoalId);
+            setConfirmDeleteGoalId(null);
+          }}
+          onCancel={() => setConfirmDeleteGoalId(null)}
+        />
       )}
     </div>
   );
