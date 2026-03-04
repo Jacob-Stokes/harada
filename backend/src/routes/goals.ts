@@ -81,7 +81,7 @@ router.get('/', (req: Request, res: Response) => {
 router.get('/export', (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
-    const { goalIds } = req.query;
+    const goalIds = req.query.goalIds as string | undefined;
 
     let ids: string[] = [];
     if (typeof goalIds === 'string' && goalIds.trim().length > 0) {
@@ -302,7 +302,7 @@ router.post('/import', (req: Request, res: Response) => {
 // Get specific goal with full tree
 router.get('/:goalId', (req: Request, res: Response) => {
   try {
-    const { goalId } = req.params;
+    const goalId = req.params.goalId as string;
     const userId = req.user?.id;
 
     const goal = db.prepare('SELECT * FROM primary_goals WHERE id = ? AND user_id = ?').get(goalId, userId) as PrimaryGoal | undefined;
@@ -333,7 +333,7 @@ router.get('/:goalId', (req: Request, res: Response) => {
 // Get full tree structure
 router.get('/:goalId/tree', (req: Request, res: Response) => {
   try {
-    const { goalId } = req.params;
+    const goalId = req.params.goalId as string;
     const userId = req.user?.id;
 
     const goal = db.prepare('SELECT * FROM primary_goals WHERE id = ? AND user_id = ?').get(goalId, userId) as PrimaryGoal | undefined;
@@ -392,7 +392,7 @@ router.post('/', (req: Request, res: Response) => {
 // Update primary goal (supports partial updates)
 router.put('/:goalId', (req: Request, res: Response) => {
   try {
-    const { goalId } = req.params;
+    const goalId = req.params.goalId as string;
     const userId = req.user?.id;
 
     const existing = db.prepare('SELECT * FROM primary_goals WHERE id = ? AND user_id = ?').get(goalId, userId) as PrimaryGoal | undefined;
@@ -427,7 +427,7 @@ router.put('/:goalId', (req: Request, res: Response) => {
 // Delete primary goal
 router.delete('/:goalId', (req: Request, res: Response) => {
   try {
-    const { goalId } = req.params;
+    const goalId = req.params.goalId as string;
     const userId = req.user?.id;
 
     const result = db.prepare('DELETE FROM primary_goals WHERE id = ? AND user_id = ?').run(goalId, userId);
@@ -445,7 +445,7 @@ router.delete('/:goalId', (req: Request, res: Response) => {
 // Get sub-goals for a primary goal
 router.get('/:goalId/subgoals', (req: Request, res: Response) => {
   try {
-    const { goalId } = req.params;
+    const goalId = req.params.goalId as string;
     const userId = req.user?.id;
 
     if (!goalOwnerCheck(goalId, userId!)) {
@@ -463,7 +463,7 @@ router.get('/:goalId/subgoals', (req: Request, res: Response) => {
 // Create sub-goal
 router.post('/:goalId/subgoals', (req: Request, res: Response) => {
   try {
-    const { goalId } = req.params;
+    const goalId = req.params.goalId as string;
     const userId = req.user?.id;
     const { position, title, description } = req.body;
 

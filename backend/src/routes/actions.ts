@@ -7,7 +7,7 @@ const router = Router();
 // Get specific action item
 router.get('/:actionId', (req: Request, res: Response) => {
   try {
-    const { actionId } = req.params;
+    const actionId = req.params.actionId as string;
     const userId = req.user!.id;
 
     const action = ownedAction(actionId, userId) as ActionItem | null;
@@ -25,7 +25,7 @@ router.get('/:actionId', (req: Request, res: Response) => {
 // Update action item
 router.put('/:actionId', (req: Request, res: Response) => {
   try {
-    const { actionId } = req.params;
+    const actionId = req.params.actionId as string;
     const userId = req.user!.id;
     const { title, description, position, due_date } = req.body;
 
@@ -54,7 +54,7 @@ router.put('/:actionId', (req: Request, res: Response) => {
 // Reorder an action within its sub-goal atomically
 router.post('/:actionId/reorder', (req: Request, res: Response) => {
   try {
-    const { actionId } = req.params;
+    const actionId = req.params.actionId as string;
     const userId = req.user!.id;
     const { targetPosition } = req.body as { targetPosition?: number };
 
@@ -123,7 +123,7 @@ router.post('/:actionId/reorder', (req: Request, res: Response) => {
 // Toggle completion status
 router.patch('/:actionId/complete', (req: Request, res: Response) => {
   try {
-    const { actionId } = req.params;
+    const actionId = req.params.actionId as string;
     const userId = req.user!.id;
 
     const action = ownedAction(actionId, userId) as ActionItem | null;
@@ -155,7 +155,7 @@ router.patch('/:actionId/complete', (req: Request, res: Response) => {
 // Delete action item
 router.delete('/:actionId', (req: Request, res: Response) => {
   try {
-    const { actionId } = req.params;
+    const actionId = req.params.actionId as string;
     const userId = req.user!.id;
 
     if (!ownedAction(actionId, userId)) {

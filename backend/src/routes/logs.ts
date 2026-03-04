@@ -8,9 +8,11 @@ const router = Router();
 // Get all logs for an action item
 router.get('/action/:actionId', (req: Request, res: Response) => {
   try {
-    const { actionId } = req.params;
+    const actionId = req.params.actionId as string;
     const userId = req.user!.id;
-    const { startDate, endDate, type } = req.query;
+    const startDate = req.query.startDate as string | undefined;
+    const endDate = req.query.endDate as string | undefined;
+    const type = req.query.type as string | undefined;
 
     if (!actionOwnerCheck(actionId, userId)) {
       return res.status(404).json({ success: false, data: null, error: 'Action not found' });
@@ -47,7 +49,7 @@ router.get('/action/:actionId', (req: Request, res: Response) => {
 // Get specific log
 router.get('/:logId', (req: Request, res: Response) => {
   try {
-    const { logId } = req.params;
+    const logId = req.params.logId as string;
     const userId = req.user!.id;
 
     const log = ownedLog(logId, userId) as ActivityLog | null;
@@ -65,7 +67,7 @@ router.get('/:logId', (req: Request, res: Response) => {
 // Create activity log
 router.post('/action/:actionId', (req: Request, res: Response) => {
   try {
-    const { actionId } = req.params;
+    const actionId = req.params.actionId as string;
     const userId = req.user!.id;
     const {
       log_type,
@@ -124,7 +126,7 @@ router.post('/action/:actionId', (req: Request, res: Response) => {
 // Update activity log
 router.put('/:logId', (req: Request, res: Response) => {
   try {
-    const { logId } = req.params;
+    const logId = req.params.logId as string;
     const userId = req.user!.id;
     const {
       log_type,
@@ -173,7 +175,7 @@ router.put('/:logId', (req: Request, res: Response) => {
 // Delete activity log
 router.delete('/:logId', (req: Request, res: Response) => {
   try {
-    const { logId } = req.params;
+    const logId = req.params.logId as string;
     const userId = req.user!.id;
 
     if (!ownedLog(logId, userId)) {
@@ -195,7 +197,7 @@ router.delete('/:logId', (req: Request, res: Response) => {
 // Get stats for an action
 router.get('/action/:actionId/stats', (req: Request, res: Response) => {
   try {
-    const { actionId } = req.params;
+    const actionId = req.params.actionId as string;
     const userId = req.user!.id;
 
     if (!actionOwnerCheck(actionId, userId)) {
