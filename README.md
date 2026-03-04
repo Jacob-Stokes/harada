@@ -40,12 +40,53 @@ The Harada Method structures goals hierarchically:
 - Docker and Docker Compose
 - Node.js 20+ (for local development)
 
-### Running with Docker
+### Running with Docker (from GHCR)
+
+Create a `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  api:
+    image: ghcr.io/jacob-stokes/xharada-backend:latest
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DATABASE_URL=file:/app/data/harada.db
+      - NODE_ENV=production
+      - PORT=3001
+      - SESSION_SECRET=change-me-to-something-secure
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/jacob-stokes/xharada-frontend:latest
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+```
+
+Then run:
 
 ```bash
-# Start the application
 docker-compose up -d
+```
 
+### Running from Source
+
+```bash
+git clone https://github.com/Jacob-Stokes/xharada.git
+cd xharada
+docker-compose up -d
+```
+
+Common commands:
+
+```bash
 # View logs
 docker-compose logs -f
 
