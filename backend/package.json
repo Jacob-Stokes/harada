@@ -28,7 +28,7 @@
     "@types/express-session": "^1.18.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/supertest": "^6.0.2",
-    "@vitest/coverage-v8": "^1.0.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "supertest": "^6.3.3",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
