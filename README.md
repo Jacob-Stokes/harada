@@ -3,13 +3,13 @@
   <h1>Xharada</h1>
 </div>
 
-A personal goal tracking app based on the **Harada Method** — a Japanese goal-setting framework that structures ambitions into nested 64-square grids. Built for AI agent integration.
+A **single source of truth** for your life goals — structured for both humans and AI agents.
 
 ## Philosophy
 
-Progress is tracked through **continuous activity logging**, not completion checkboxes.
+Your goals, sub-goals, and actions should live in one place that any AI agent can read, write to, and reason about. Xharada is that place. It uses the **Harada Method** — a Japanese framework that structures goals as **1 Primary Goal → 8 Sub-Goals → 8 Actions each = 64 total actions** — and exposes everything through an MCP endpoint and REST API.
 
-The Harada Method structures goals as: **1 Primary Goal → 8 Sub-Goals → 8 Actions each = 64 total actions**. Instead of marking things "done", you log what you did and when you did it. Frequency and consistency are what matter. AI agents can then provide coaching based on activity patterns rather than binary completion.
+Progress is tracked through continuous activity logging rather than completion checkboxes. Frequency and consistency matter more than "done" states. AI agents can provide coaching, track patterns, and leave feedback at any level of the goal hierarchy.
 
 ## Features
 
