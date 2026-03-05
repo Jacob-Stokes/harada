@@ -1,44 +1,11 @@
 import { Router, Request, Response } from 'express';
-import { db, PrimaryGoal, SubGoal, ActionItem, ActivityLog } from '../db/database';
+import { db, PrimaryGoal } from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
 import { goalOwnerCheck } from '../middleware/ownership';
+import { ok, fail, serverError } from '../utils/response';
+import { buildGoalTree } from '../utils/goalTree';
 
 const router = Router();
-
-function getGoalTree(goalId: string, userId?: string | null) {
-  const goal = db
-    .prepare('SELECT * FROM primary_goals WHERE id = ? AND user_id = ?')
-    .get(goalId, userId) as PrimaryGoal | undefined;
-
-  if (!goal) {
-    return null;
-  }
-
-  const subGoals = db
-    .prepare('SELECT * FROM sub_goals WHERE primary_goal_id = ? ORDER BY position')
-    .all(goalId) as SubGoal[];
-
-  const subGoalsWithActions = subGoals.map((subGoal) => {
-    const actions = db
-      .prepare('SELECT * FROM action_items WHERE sub_goal_id = ? ORDER BY position')
-      .all(subGoal.id) as ActionItem[];
-
-    return {
-      ...subGoal,
-      actions: actions.map((action) => {
-        const logs = db
-          .prepare('SELECT * FROM activity_logs WHERE action_item_id = ? ORDER BY log_date DESC, created_at DESC')
-          .all(action.id) as ActivityLog[];
-        return { ...action, logs };
-      }),
-    };
-  });
-
-  return {
-    ...goal,
-    subGoals: subGoalsWithActions,
-  };
-}
 
 // Get all primary goals (with optional search via ?q=)
 router.get('/', (req: Request, res: Response) => {
@@ -71,9 +38,9 @@ router.get('/', (req: Request, res: Response) => {
       goals = db.prepare('SELECT * FROM primary_goals WHERE user_id = ? ORDER BY created_at DESC').all(userId);
     }
 
-    res.json({ success: true, data: goals, error: null });
+    ok(res, goals);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -97,20 +64,16 @@ router.get('/export', (req: Request, res: Response) => {
     }
 
     const exported = ids
-      .map((id) => getGoalTree(id, userId))
-      .filter((goal): goal is NonNullable<ReturnType<typeof getGoalTree>> => Boolean(goal));
+      .map((id) => buildGoalTree(id, { userId, includeLogs: true }))
+      .filter((goal): goal is NonNullable<ReturnType<typeof buildGoalTree>> => Boolean(goal));
 
-    res.json({
-      success: true,
-      data: {
-        generatedAt: new Date().toISOString(),
-        count: exported.length,
-        goals: exported,
-      },
-      error: null,
+    ok(res, {
+      generatedAt: new Date().toISOString(),
+      count: exported.length,
+      goals: exported,
     });
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -130,7 +93,7 @@ router.post('/import', (req: Request, res: Response) => {
     const incomingGoals = extractGoalsArray(req.body);
 
     if (!incomingGoals || incomingGoals.length === 0) {
-      return res.status(400).json({ success: false, data: null, error: 'No goals found in payload' });
+      return fail(res, 400, 'No goals found in payload');
     }
 
     const stats = {
@@ -287,15 +250,11 @@ router.post('/import', (req: Request, res: Response) => {
 
     runImport();
 
-    res.json({
-      success: true,
-      data: {
-        imported: stats,
-      },
-      error: null,
+    ok(res, {
+      imported: stats,
     });
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -305,59 +264,15 @@ router.get('/:goalId', (req: Request, res: Response) => {
     const goalId = req.params.goalId as string;
     const userId = req.user?.id;
 
-    const goal = db.prepare('SELECT * FROM primary_goals WHERE id = ? AND user_id = ?').get(goalId, userId) as PrimaryGoal | undefined;
+    const tree = buildGoalTree(goalId, { userId });
 
-    if (!goal) {
-      return res.status(404).json({ success: false, data: null, error: 'Goal not found' });
+    if (!tree) {
+      return fail(res, 404, 'Goal not found');
     }
 
-    const subGoals = db.prepare('SELECT * FROM sub_goals WHERE primary_goal_id = ? ORDER BY position').all(goalId) as SubGoal[];
-
-    const goalWithTree = {
-      ...goal,
-      subGoals: subGoals.map(subGoal => {
-        const actions = db.prepare('SELECT * FROM action_items WHERE sub_goal_id = ? ORDER BY position').all(subGoal.id) as ActionItem[];
-        return {
-          ...subGoal,
-          actions
-        };
-      })
-    };
-
-    res.json({ success: true, data: goalWithTree, error: null });
+    ok(res, tree);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
-  }
-});
-
-// Get full tree structure
-router.get('/:goalId/tree', (req: Request, res: Response) => {
-  try {
-    const goalId = req.params.goalId as string;
-    const userId = req.user?.id;
-
-    const goal = db.prepare('SELECT * FROM primary_goals WHERE id = ? AND user_id = ?').get(goalId, userId) as PrimaryGoal | undefined;
-
-    if (!goal) {
-      return res.status(404).json({ success: false, data: null, error: 'Goal not found' });
-    }
-
-    const subGoals = db.prepare('SELECT * FROM sub_goals WHERE primary_goal_id = ? ORDER BY position').all(goalId) as SubGoal[];
-
-    const tree = {
-      ...goal,
-      subGoals: subGoals.map(subGoal => {
-        const actions = db.prepare('SELECT * FROM action_items WHERE sub_goal_id = ? ORDER BY position').all(subGoal.id) as ActionItem[];
-        return {
-          ...subGoal,
-          actions
-        };
-      })
-    };
-
-    res.json({ success: true, data: tree, error: null });
-  } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -368,7 +283,7 @@ router.post('/', (req: Request, res: Response) => {
     const userId = req.user?.id;
 
     if (!title) {
-      return res.status(400).json({ success: false, data: null, error: 'Title is required' });
+      return fail(res, 400, 'Title is required');
     }
 
     const id = uuidv4();
@@ -383,9 +298,9 @@ router.post('/', (req: Request, res: Response) => {
 
     const goal = db.prepare('SELECT * FROM primary_goals WHERE id = ?').get(id);
 
-    res.status(201).json({ success: true, data: goal, error: null });
+    ok(res, goal, 201);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -398,7 +313,7 @@ router.put('/:goalId', (req: Request, res: Response) => {
     const existing = db.prepare('SELECT * FROM primary_goals WHERE id = ? AND user_id = ?').get(goalId, userId) as PrimaryGoal | undefined;
 
     if (!existing) {
-      return res.status(404).json({ success: false, data: null, error: 'Goal not found' });
+      return fail(res, 404, 'Goal not found');
     }
 
     const title = req.body.title ?? existing.title;
@@ -418,9 +333,9 @@ router.put('/:goalId', (req: Request, res: Response) => {
 
     const updatedGoal = db.prepare('SELECT * FROM primary_goals WHERE id = ?').get(goalId);
 
-    res.json({ success: true, data: updatedGoal, error: null });
+    ok(res, updatedGoal);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -433,12 +348,12 @@ router.delete('/:goalId', (req: Request, res: Response) => {
     const result = db.prepare('DELETE FROM primary_goals WHERE id = ? AND user_id = ?').run(goalId, userId);
 
     if (result.changes === 0) {
-      return res.status(404).json({ success: false, data: null, error: 'Goal not found' });
+      return fail(res, 404, 'Goal not found');
     }
 
-    res.json({ success: true, data: { deleted: true }, error: null });
+    ok(res, { deleted: true });
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -449,14 +364,14 @@ router.get('/:goalId/subgoals', (req: Request, res: Response) => {
     const userId = req.user?.id;
 
     if (!goalOwnerCheck(goalId, userId!)) {
-      return res.status(404).json({ success: false, data: null, error: 'Goal not found' });
+      return fail(res, 404, 'Goal not found');
     }
 
     const subGoals = db.prepare('SELECT * FROM sub_goals WHERE primary_goal_id = ? ORDER BY position').all(goalId);
 
-    res.json({ success: true, data: subGoals, error: null });
+    ok(res, subGoals);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -468,15 +383,15 @@ router.post('/:goalId/subgoals', (req: Request, res: Response) => {
     const { position, title, description } = req.body;
 
     if (!goalOwnerCheck(goalId, userId!)) {
-      return res.status(404).json({ success: false, data: null, error: 'Goal not found' });
+      return fail(res, 404, 'Goal not found');
     }
 
     if (!title || !position) {
-      return res.status(400).json({ success: false, data: null, error: 'Title and position are required' });
+      return fail(res, 400, 'Title and position are required');
     }
 
     if (position < 1 || position > 8) {
-      return res.status(400).json({ success: false, data: null, error: 'Position must be between 1 and 8' });
+      return fail(res, 400, 'Position must be between 1 and 8');
     }
 
     const id = uuidv4();
@@ -491,9 +406,9 @@ router.post('/:goalId/subgoals', (req: Request, res: Response) => {
 
     const subGoal = db.prepare('SELECT * FROM sub_goals WHERE id = ?').get(id);
 
-    res.status(201).json({ success: true, data: subGoal, error: null });
+    ok(res, subGoal, 201);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 

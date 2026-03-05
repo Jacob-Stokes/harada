@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { db, ActionItem } from '../db/database';
 import { ownedAction } from '../middleware/ownership';
+import { ok, fail, serverError } from '../utils/response';
 
 const router = Router();
 
@@ -13,12 +14,12 @@ router.get('/:actionId', (req: Request, res: Response) => {
     const action = ownedAction(actionId, userId) as ActionItem | null;
 
     if (!action) {
-      return res.status(404).json({ success: false, data: null, error: 'Action item not found' });
+      return fail(res, 404, 'Action item not found');
     }
 
-    res.json({ success: true, data: action, error: null });
+    ok(res, action);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -29,8 +30,10 @@ router.put('/:actionId', (req: Request, res: Response) => {
     const userId = req.user!.id;
     const { title, description, position, due_date } = req.body;
 
-    if (!ownedAction(actionId, userId)) {
-      return res.status(404).json({ success: false, data: null, error: 'Action item not found' });
+    const existing = ownedAction(actionId, userId) as any;
+
+    if (!existing) {
+      return fail(res, 404, 'Action item not found');
     }
 
     const now = new Date().toISOString();
@@ -41,13 +44,19 @@ router.put('/:actionId', (req: Request, res: Response) => {
       WHERE id = ?
     `);
 
-    stmt.run(title, description || null, position, due_date || null, now, actionId);
+    stmt.run(
+      title ?? existing.title,
+      description ?? existing.description,
+      position ?? existing.position,
+      due_date ?? existing.due_date,
+      now, actionId
+    );
 
     const updated = db.prepare('SELECT * FROM action_items WHERE id = ?').get(actionId);
 
-    res.json({ success: true, data: updated, error: null });
+    ok(res, updated);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -59,17 +68,17 @@ router.post('/:actionId/reorder', (req: Request, res: Response) => {
     const { targetPosition } = req.body as { targetPosition?: number };
 
     if (!targetPosition || targetPosition < 1 || targetPosition > 8) {
-      return res.status(400).json({ success: false, data: null, error: 'targetPosition must be 1-8' });
+      return fail(res, 400, 'targetPosition must be 1-8');
     }
 
     const action = ownedAction(actionId, userId) as ActionItem | null;
 
     if (!action) {
-      return res.status(404).json({ success: false, data: null, error: 'Action item not found' });
+      return fail(res, 404, 'Action item not found');
     }
 
     if (action.position === targetPosition) {
-      return res.json({ success: true, data: action, error: null });
+      return ok(res, action);
     }
 
     const conflicting = db
@@ -114,9 +123,9 @@ router.post('/:actionId/reorder', (req: Request, res: Response) => {
 
     const updated = db.prepare('SELECT * FROM action_items WHERE id = ?').get(actionId);
 
-    res.json({ success: true, data: updated, error: null });
+    ok(res, updated);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -129,7 +138,7 @@ router.patch('/:actionId/complete', (req: Request, res: Response) => {
     const action = ownedAction(actionId, userId) as ActionItem | null;
 
     if (!action) {
-      return res.status(404).json({ success: false, data: null, error: 'Action item not found' });
+      return fail(res, 404, 'Action item not found');
     }
 
     const newCompleted = action.completed ? 0 : 1;
@@ -146,9 +155,9 @@ router.patch('/:actionId/complete', (req: Request, res: Response) => {
 
     const updated = db.prepare('SELECT * FROM action_items WHERE id = ?').get(actionId);
 
-    res.json({ success: true, data: updated, error: null });
+    ok(res, updated);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -159,18 +168,18 @@ router.delete('/:actionId', (req: Request, res: Response) => {
     const userId = req.user!.id;
 
     if (!ownedAction(actionId, userId)) {
-      return res.status(404).json({ success: false, data: null, error: 'Action item not found' });
+      return fail(res, 404, 'Action item not found');
     }
 
     const result = db.prepare('DELETE FROM action_items WHERE id = ?').run(actionId);
 
     if (result.changes === 0) {
-      return res.status(404).json({ success: false, data: null, error: 'Action item not found' });
+      return fail(res, 404, 'Action item not found');
     }
 
-    res.json({ success: true, data: { deleted: true }, error: null });
+    ok(res, { deleted: true });
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 

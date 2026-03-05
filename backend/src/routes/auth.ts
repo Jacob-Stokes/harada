@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/database';
 import { requireAuth } from '../middleware/auth';
+import { ok, fail, serverError } from '../utils/response';
 
 const router = Router();
 
@@ -11,19 +12,13 @@ router.post('/register', (req, res) => {
   try {
     const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as any;
     if (userCount.count > 0) {
-      return res.status(403).json({
-        success: false,
-        error: 'Registration is disabled. Contact an administrator to create your account.'
-      });
+      return fail(res, 403, 'Registration is disabled. Contact an administrator to create your account.');
     }
 
     const { username, password, email } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({
-        success: false,
-        error: 'Username and password are required'
-      });
+      return fail(res, 400, 'Username and password are required');
     }
 
     const passwordHash = bcrypt.hashSync(password, 10);
@@ -34,20 +29,14 @@ router.post('/register', (req, res) => {
       VALUES (?, ?, ?, ?, 1)
     `).run(userId, username, passwordHash, email || null);
 
-    res.json({
-      success: true,
-      data: {
-        id: userId,
-        username,
-        email,
-        is_admin: true
-      }
+    ok(res, {
+      id: userId,
+      username,
+      email,
+      is_admin: true
     });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    serverError(res, error);
   }
 });
 
@@ -57,38 +46,26 @@ router.post('/login', (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({
-        success: false,
-        error: 'Username and password are required'
-      });
+      return fail(res, 400, 'Username and password are required');
     }
 
     // Get user
     const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as any;
 
     if (!user || !bcrypt.compareSync(password, user.password_hash)) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid username or password'
-      });
+      return fail(res, 401, 'Invalid username or password');
     }
 
     // Set session
     (req.session as any).userId = user.id;
 
-    res.json({
-      success: true,
-      data: {
-        id: user.id,
-        username: user.username,
-        email: user.email
-      }
+    ok(res, {
+      id: user.id,
+      username: user.username,
+      email: user.email
     });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    serverError(res, error);
   }
 });
 
@@ -96,25 +73,16 @@ router.post('/login', (req, res) => {
 router.post('/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) {
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to logout'
-      });
+      return fail(res, 500, 'Failed to logout');
     }
 
-    res.json({
-      success: true,
-      data: { message: 'Logged out successfully' }
-    });
+    ok(res, { message: 'Logged out successfully' });
   });
 });
 
 // Get current user
 router.get('/me', requireAuth, (req, res) => {
-  res.json({
-    success: true,
-    data: req.user
-  });
+  ok(res, req.user);
 });
 
 // Generate API key
@@ -123,10 +91,7 @@ router.post('/api-keys', requireAuth, (req, res) => {
     const { name, expiresInDays } = req.body;
 
     if (!name) {
-      return res.status(400).json({
-        success: false,
-        error: 'API key name is required'
-      });
+      return fail(res, 400, 'API key name is required');
     }
 
     // Generate API key (format: id-randomstring)
@@ -151,21 +116,15 @@ router.post('/api-keys', requireAuth, (req, res) => {
       VALUES (?, ?, ?, ?, ?)
     `).run(keyId, req.user!.id, keyHash, name, expiresAt);
 
-    res.json({
-      success: true,
-      data: {
-        id: keyId,
-        name,
-        key: apiKey,
-        expiresAt,
-        warning: 'Store this API key securely. It will not be shown again.'
-      }
+    ok(res, {
+      id: keyId,
+      name,
+      key: apiKey,
+      expiresAt,
+      warning: 'Store this API key securely. It will not be shown again.'
     });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    serverError(res, error);
   }
 });
 
@@ -179,15 +138,9 @@ router.get('/api-keys', requireAuth, (req, res) => {
       ORDER BY created_at DESC
     `).all(req.user!.id);
 
-    res.json({
-      success: true,
-      data: keys
-    });
+    ok(res, keys);
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    serverError(res, error);
   }
 });
 
@@ -202,21 +155,12 @@ router.delete('/api-keys/:id', requireAuth, (req, res) => {
     `).run(id, req.user!.id);
 
     if (result.changes === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'API key not found'
-      });
+      return fail(res, 404, 'API key not found');
     }
 
-    res.json({
-      success: true,
-      data: { message: 'API key deleted successfully' }
-    });
+    ok(res, { message: 'API key deleted successfully' });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    serverError(res, error);
   }
 });
 
@@ -229,17 +173,11 @@ router.get('/settings', requireAuth, (req, res) => {
       WHERE id = ?
     `).get(req.user!.id) as any;
 
-    res.json({
-      success: true,
-      data: {
-        allow_query_param_auth: user?.allow_query_param_auth !== 0
-      }
+    ok(res, {
+      allow_query_param_auth: user?.allow_query_param_auth !== 0
     });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    serverError(res, error);
   }
 });
 
@@ -261,17 +199,11 @@ router.put('/settings', requireAuth, (req, res) => {
       WHERE id = ?
     `).get(req.user!.id) as any;
 
-    res.json({
-      success: true,
-      data: {
-        allow_query_param_auth: user?.allow_query_param_auth !== 0
-      }
+    ok(res, {
+      allow_query_param_auth: user?.allow_query_param_auth !== 0
     });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    serverError(res, error);
   }
 });
 
@@ -281,41 +213,29 @@ router.put('/password', requireAuth, (req, res) => {
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        error: 'Current password and new password are required'
-      });
+      return fail(res, 400, 'Current password and new password are required');
     }
 
     if (newPassword.length < 6) {
-      return res.status(400).json({
-        success: false,
-        error: 'New password must be at least 6 characters'
-      });
+      return fail(res, 400, 'New password must be at least 6 characters');
     }
 
     const user = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user!.id) as any;
     if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
+      return fail(res, 404, 'User not found');
     }
 
     if (!bcrypt.compareSync(currentPassword, user.password_hash)) {
-      return res.status(401).json({
-        success: false,
-        error: 'Current password is incorrect'
-      });
+      return fail(res, 401, 'Current password is incorrect');
     }
 
     const newHash = bcrypt.hashSync(newPassword, 10);
     db.prepare("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?")
       .run(newHash, req.user!.id);
 
-    res.json({
-      success: true,
-      data: { message: 'Password changed successfully' }
-    });
+    ok(res, { message: 'Password changed successfully' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    serverError(res, error);
   }
 });
 

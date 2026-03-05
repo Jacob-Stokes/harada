@@ -1,7 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { randomBytes } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
-import { db, PrimaryGoal, SubGoal, ActionItem, ActivityLog, SharedGoal } from '../db/database';
+import { db, SharedGoal } from '../db/database';
+import { ok, fail, serverError } from '../utils/response';
+import { buildGoalTree } from '../utils/goalTree';
 
 // Authenticated routes for managing share links
 export const shareManagementRouter = Router();
@@ -13,13 +15,13 @@ shareManagementRouter.post('/', (req: Request, res: Response) => {
     const { goal_id, show_logs, show_guestbook } = req.body;
 
     if (!goal_id) {
-      return res.status(400).json({ success: false, error: 'goal_id is required' });
+      return fail(res, 400, 'goal_id is required');
     }
 
     // Verify goal belongs to user
     const goal = db.prepare('SELECT id FROM primary_goals WHERE id = ? AND user_id = ?').get(goal_id, userId);
     if (!goal) {
-      return res.status(404).json({ success: false, error: 'Goal not found' });
+      return fail(res, 404, 'Goal not found');
     }
 
     const id = uuidv4();
@@ -32,9 +34,9 @@ shareManagementRouter.post('/', (req: Request, res: Response) => {
 
     const share = db.prepare('SELECT * FROM shared_goals WHERE id = ?').get(id);
 
-    res.json({ success: true, data: share });
+    ok(res, share);
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    serverError(res, error);
   }
 });
 
@@ -55,9 +57,9 @@ shareManagementRouter.get('/', (req: Request, res: Response) => {
       ).all(userId);
     }
 
-    res.json({ success: true, data: shares });
+    ok(res, shares);
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    serverError(res, error);
   }
 });
 
@@ -72,12 +74,12 @@ shareManagementRouter.delete('/:shareId', (req: Request, res: Response) => {
     ).run(shareId, userId);
 
     if (result.changes === 0) {
-      return res.status(404).json({ success: false, error: 'Share link not found' });
+      return fail(res, 404, 'Share link not found');
     }
 
-    res.json({ success: true, data: { message: 'Share link revoked' } });
+    ok(res, { message: 'Share link revoked' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    serverError(res, error);
   }
 });
 
@@ -93,40 +95,27 @@ sharePublicRouter.get('/:token/goal', (req: Request, res: Response) => {
     ).get(token) as SharedGoal | undefined;
 
     if (!share) {
-      return res.status(404).json({ success: false, error: 'Share link not found or has been revoked' });
+      return fail(res, 404, 'Share link not found or has been revoked');
     }
 
-    // Fetch goal
-    const goal = db.prepare('SELECT * FROM primary_goals WHERE id = ?').get(share.goal_id) as PrimaryGoal | undefined;
-    if (!goal) {
-      return res.status(404).json({ success: false, error: 'Goal no longer exists' });
-    }
-
-    // Fetch subgoals + actions
-    const subGoals = db.prepare(
-      'SELECT * FROM sub_goals WHERE primary_goal_id = ? ORDER BY position'
-    ).all(share.goal_id) as SubGoal[];
-
-    const subGoalsWithActions = subGoals.map((subGoal) => {
-      const actions = db.prepare(
-        'SELECT * FROM action_items WHERE sub_goal_id = ? ORDER BY position'
-      ).all(subGoal.id) as ActionItem[];
-
-      return {
-        ...subGoal,
-        actions: actions.map((action) => {
-          const result: any = { ...action };
-          if (share.show_logs) {
-            result.logs = db.prepare(
-              'SELECT * FROM activity_logs WHERE action_item_id = ? ORDER BY log_date DESC, created_at DESC'
-            ).all(action.id) as ActivityLog[];
-          } else {
-            result.logs = [];
-          }
-          return result;
-        }),
-      };
+    // Build goal tree (no userId check -- this is a public share view)
+    const goalTree = buildGoalTree(share.goal_id, {
+      includeLogs: !!share.show_logs,
     });
+
+    if (!goalTree) {
+      return fail(res, 404, 'Goal no longer exists');
+    }
+
+    // Strip logs arrays when show_logs is off (buildGoalTree omits the logs
+    // key entirely when includeLogs is false, so normalise to empty arrays)
+    if (!share.show_logs) {
+      goalTree.subGoals.forEach((sg) => {
+        sg.actions.forEach((a: any) => {
+          if (!('logs' in a)) a.logs = [];
+        });
+      });
+    }
 
     // Conditionally include guestbook
     let guestbook: any[] = [];
@@ -136,8 +125,10 @@ sharePublicRouter.get('/:token/goal', (req: Request, res: Response) => {
       ).all(share.user_id, 'goal', share.goal_id, 'subgoal', 'action', 'user');
 
       // Filter subgoal/action entries to only those belonging to this goal
-      const subGoalIds = new Set(subGoals.map(sg => sg.id));
-      const actionIds = new Set(subGoalsWithActions.flatMap(sg => sg.actions.map((a: any) => a.id)));
+      const subGoalIds = new Set(goalTree.subGoals.map((sg) => sg.id));
+      const actionIds = new Set(
+        goalTree.subGoals.flatMap((sg) => sg.actions.map((a: any) => a.id))
+      );
 
       guestbook = guestbook.filter((entry: any) => {
         if (entry.target_type === 'goal') return entry.target_id === share.goal_id;
@@ -148,21 +139,15 @@ sharePublicRouter.get('/:token/goal', (req: Request, res: Response) => {
       });
     }
 
-    res.json({
-      success: true,
-      data: {
-        goal: {
-          ...goal,
-          subGoals: subGoalsWithActions,
-        },
-        guestbook,
-        shareSettings: {
-          show_logs: share.show_logs === 1,
-          show_guestbook: share.show_guestbook === 1,
-        },
+    ok(res, {
+      goal: goalTree,
+      guestbook,
+      shareSettings: {
+        show_logs: share.show_logs === 1,
+        show_guestbook: share.show_guestbook === 1,
       },
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    serverError(res, error);
   }
 });

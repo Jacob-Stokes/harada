@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { db, ActivityLog } from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
 import { actionOwnerCheck, ownedLog } from '../middleware/ownership';
+import { ok, fail, serverError } from '../utils/response';
 
 const router = Router();
 
@@ -15,7 +16,7 @@ router.get('/action/:actionId', (req: Request, res: Response) => {
     const type = req.query.type as string | undefined;
 
     if (!actionOwnerCheck(actionId, userId)) {
-      return res.status(404).json({ success: false, data: null, error: 'Action not found' });
+      return fail(res, 404, 'Action not found');
     }
 
     let query = 'SELECT * FROM activity_logs WHERE action_item_id = ?';
@@ -40,9 +41,9 @@ router.get('/action/:actionId', (req: Request, res: Response) => {
 
     const logs = db.prepare(query).all(...params);
 
-    res.json({ success: true, data: logs, error: null });
+    ok(res, logs);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -55,12 +56,12 @@ router.get('/:logId', (req: Request, res: Response) => {
     const log = ownedLog(logId, userId) as ActivityLog | null;
 
     if (!log) {
-      return res.status(404).json({ success: false, data: null, error: 'Log not found' });
+      return fail(res, 404, 'Log not found');
     }
 
-    res.json({ success: true, data: log, error: null });
+    ok(res, log);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -84,16 +85,16 @@ router.post('/action/:actionId', (req: Request, res: Response) => {
     } = req.body;
 
     if (!actionOwnerCheck(actionId, userId)) {
-      return res.status(404).json({ success: false, data: null, error: 'Action not found' });
+      return fail(res, 404, 'Action not found');
     }
 
     if (!log_type || !log_date) {
-      return res.status(400).json({ success: false, data: null, error: 'log_type and log_date are required' });
+      return fail(res, 400, 'log_type and log_date are required');
     }
 
     const validTypes = ['note', 'progress', 'completion', 'media', 'link'];
     if (!validTypes.includes(log_type)) {
-      return res.status(400).json({ success: false, data: null, error: 'Invalid log_type' });
+      return fail(res, 400, 'Invalid log_type');
     }
 
     const id = uuidv4();
@@ -109,17 +110,17 @@ router.post('/action/:actionId', (req: Request, res: Response) => {
     `);
 
     stmt.run(
-      id, actionId, log_type, content || null, log_date,
-      duration_minutes || null, metric_value || null, metric_unit || null,
-      media_url || null, media_type || null, external_link || null,
-      mood || null, tags || null, now, now
+      id, actionId, log_type, content ?? null, log_date,
+      duration_minutes ?? null, metric_value ?? null, metric_unit ?? null,
+      media_url ?? null, media_type ?? null, external_link ?? null,
+      mood ?? null, tags ?? null, now, now
     );
 
     const log = db.prepare('SELECT * FROM activity_logs WHERE id = ?').get(id);
 
-    res.status(201).json({ success: true, data: log, error: null });
+    ok(res, log, 201);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -143,7 +144,7 @@ router.put('/:logId', (req: Request, res: Response) => {
     } = req.body;
 
     if (!ownedLog(logId, userId)) {
-      return res.status(404).json({ success: false, data: null, error: 'Log not found' });
+      return fail(res, 404, 'Log not found');
     }
 
     const now = new Date().toISOString();
@@ -158,17 +159,17 @@ router.put('/:logId', (req: Request, res: Response) => {
     `);
 
     stmt.run(
-      log_type, content || null, log_date,
-      duration_minutes || null, metric_value || null, metric_unit || null,
-      media_url || null, media_type || null, external_link || null,
-      mood || null, tags || null, now, logId
+      log_type, content ?? null, log_date,
+      duration_minutes ?? null, metric_value ?? null, metric_unit ?? null,
+      media_url ?? null, media_type ?? null, external_link ?? null,
+      mood ?? null, tags ?? null, now, logId
     );
 
     const updated = db.prepare('SELECT * FROM activity_logs WHERE id = ?').get(logId);
 
-    res.json({ success: true, data: updated, error: null });
+    ok(res, updated);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -179,18 +180,18 @@ router.delete('/:logId', (req: Request, res: Response) => {
     const userId = req.user!.id;
 
     if (!ownedLog(logId, userId)) {
-      return res.status(404).json({ success: false, data: null, error: 'Log not found' });
+      return fail(res, 404, 'Log not found');
     }
 
     const result = db.prepare('DELETE FROM activity_logs WHERE id = ?').run(logId);
 
     if (result.changes === 0) {
-      return res.status(404).json({ success: false, data: null, error: 'Log not found' });
+      return fail(res, 404, 'Log not found');
     }
 
-    res.json({ success: true, data: { deleted: true }, error: null });
+    ok(res, { deleted: true });
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -201,7 +202,7 @@ router.get('/action/:actionId/stats', (req: Request, res: Response) => {
     const userId = req.user!.id;
 
     if (!actionOwnerCheck(actionId, userId)) {
-      return res.status(404).json({ success: false, data: null, error: 'Action not found' });
+      return fail(res, 404, 'Action not found');
     }
 
     const totalLogs = db.prepare('SELECT COUNT(*) as count FROM activity_logs WHERE action_item_id = ?')
@@ -228,18 +229,14 @@ router.get('/action/:actionId/stats', (req: Request, res: Response) => {
       LIMIT 5
     `).all(actionId);
 
-    res.json({
-      success: true,
-      data: {
-        total_logs: totalLogs.count,
-        logs_by_type: logsByType,
-        average_metrics: avgMetric,
-        recent_logs: recentLogs
-      },
-      error: null
+    ok(res, {
+      total_logs: totalLogs.count,
+      logs_by_type: logsByType,
+      average_metrics: avgMetric,
+      recent_logs: recentLogs
     });
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { db, GuestbookEntry } from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
+import { ok, fail, serverError } from '../utils/response';
 
 const router = Router();
 
@@ -27,9 +28,9 @@ router.get('/', (req: Request, res: Response) => {
 
     const entries = db.prepare(query).all(...params) as GuestbookEntry[];
 
-    res.json({ success: true, data: entries, error: null });
+    ok(res, entries);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -40,19 +41,11 @@ router.post('/', (req: Request, res: Response) => {
     const { agent_name, comment, target_type, target_id } = req.body;
 
     if (!agent_name || !comment || !target_type) {
-      return res.status(400).json({
-        success: false,
-        data: null,
-        error: 'agent_name, comment, and target_type are required'
-      });
+      return fail(res, 400, 'agent_name, comment, and target_type are required');
     }
 
     if (!['user', 'goal', 'subgoal', 'action'].includes(target_type)) {
-      return res.status(400).json({
-        success: false,
-        data: null,
-        error: 'target_type must be one of: user, goal, subgoal, action'
-      });
+      return fail(res, 400, 'target_type must be one of: user, goal, subgoal, action');
     }
 
     const id = uuidv4();
@@ -67,9 +60,9 @@ router.post('/', (req: Request, res: Response) => {
 
     const entry = db.prepare('SELECT * FROM guestbook WHERE id = ?').get(id);
 
-    res.status(201).json({ success: true, data: entry, error: null });
+    ok(res, entry, 201);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 
@@ -83,12 +76,12 @@ router.delete('/:entryId', (req: Request, res: Response) => {
     const result = db.prepare('DELETE FROM guestbook WHERE id = ? AND user_id = ?').run(entryId, userId);
 
     if (result.changes === 0) {
-      return res.status(404).json({ success: false, data: null, error: 'Entry not found' });
+      return fail(res, 404, 'Entry not found');
     }
 
-    res.json({ success: true, data: { deleted: true }, error: null });
+    ok(res, { deleted: true });
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 

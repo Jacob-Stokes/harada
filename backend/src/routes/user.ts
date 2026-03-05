@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { db, PrimaryGoal, SubGoal, ActionItem } from '../db/database';
+import { ok, fail, serverError } from '../utils/response';
 
 const router = Router();
 
@@ -142,7 +143,6 @@ router.get('/summary', (req: Request, res: Response) => {
     });
 
     // Add user-level guestbook if requested
-    const response: any = { success: true, data: summary, error: null };
     if (includeGuestbook) {
       const userGuestbook = db.prepare(`
         SELECT id, agent_name, comment, created_at
@@ -150,12 +150,12 @@ router.get('/summary', (req: Request, res: Response) => {
         WHERE user_id = ? AND target_type = 'user'
         ORDER BY created_at DESC
       `).all(userId);
-      response.guestbook = userGuestbook;
+      return res.json({ success: true, data: summary, error: null, guestbook: userGuestbook });
     }
 
-    res.json(response);
+    ok(res, summary);
   } catch (error) {
-    res.status(500).json({ success: false, data: null, error: (error as Error).message });
+    serverError(res, error);
   }
 });
 

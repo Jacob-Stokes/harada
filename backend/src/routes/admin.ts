@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/database';
+import { ok, fail, serverError } from '../utils/response';
+import { seedDefaultEtiquette } from '../utils/etiquette';
 
 const router = Router();
 
@@ -14,9 +16,9 @@ router.get('/users', (req: Request, res: Response) => {
       ORDER BY created_at ASC
     `).all();
 
-    res.json({ success: true, data: users });
+    ok(res, users);
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    serverError(res, error);
   }
 });
 
@@ -26,20 +28,20 @@ router.post('/users', (req: Request, res: Response) => {
     const { username, password, email, is_admin } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({ success: false, error: 'Username and password are required' });
+      return fail(res, 400, 'Username and password are required');
     }
 
     if (username.length < 3) {
-      return res.status(400).json({ success: false, error: 'Username must be at least 3 characters' });
+      return fail(res, 400, 'Username must be at least 3 characters');
     }
 
     if (password.length < 6) {
-      return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+      return fail(res, 400, 'Password must be at least 6 characters');
     }
 
     const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
     if (existing) {
-      return res.status(400).json({ success: false, error: 'Username already exists' });
+      return fail(res, 400, 'Username already exists');
     }
 
     const userId = uuidv4();
@@ -51,22 +53,13 @@ router.post('/users', (req: Request, res: Response) => {
     `).run(userId, username, passwordHash, email || null, is_admin ? 1 : 0);
 
     // Seed default etiquette for new user
-    const defaults = [
-      'Keep the Harada structure (goal → sub-goal → 8 actions) intact.',
-      'Use positive, coaching language when writing updates.',
-      'Ask before deleting goals or sub-goals.',
-      'Surface blockers or ambiguities in the guestbook.',
-    ];
-    const insertEtiquette = db.prepare('INSERT INTO agent_etiquette (id, user_id, content, position, is_default) VALUES (?, ?, ?, ?, 1)');
-    defaults.forEach((content, i) => {
-      insertEtiquette.run(uuidv4(), userId, content, i);
-    });
+    seedDefaultEtiquette(userId);
 
     const user = db.prepare('SELECT id, username, email, is_admin, created_at FROM users WHERE id = ?').get(userId);
 
-    res.status(201).json({ success: true, data: user });
+    ok(res, user, 201);
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    serverError(res, error);
   }
 });
 
@@ -78,13 +71,13 @@ router.put('/users/:id', (req: Request, res: Response) => {
 
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as any;
     if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
+      return fail(res, 404, 'User not found');
     }
 
     if (typeof is_admin === 'boolean') {
       // Prevent removing own admin
       if (id === req.user!.id && !is_admin) {
-        return res.status(400).json({ success: false, error: 'Cannot remove your own admin privileges' });
+        return fail(res, 400, 'Cannot remove your own admin privileges');
       }
       db.prepare("UPDATE users SET is_admin = ?, updated_at = datetime('now') WHERE id = ?").run(is_admin ? 1 : 0, id);
     }
@@ -95,9 +88,9 @@ router.put('/users/:id', (req: Request, res: Response) => {
 
     const updated = db.prepare('SELECT id, username, email, is_admin, created_at, updated_at FROM users WHERE id = ?').get(id);
 
-    res.json({ success: true, data: updated });
+    ok(res, updated);
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    serverError(res, error);
   }
 });
 
@@ -108,20 +101,20 @@ router.put('/users/:id/password', (req: Request, res: Response) => {
     const { password } = req.body;
 
     if (!password || password.length < 6) {
-      return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+      return fail(res, 400, 'Password must be at least 6 characters');
     }
 
     const user = db.prepare('SELECT id FROM users WHERE id = ?').get(id);
     if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
+      return fail(res, 404, 'User not found');
     }
 
     const passwordHash = bcrypt.hashSync(password, 10);
     db.prepare("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?").run(passwordHash, id);
 
-    res.json({ success: true, data: { message: 'Password updated successfully' } });
+    ok(res, { message: 'Password updated successfully' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    serverError(res, error);
   }
 });
 
@@ -131,20 +124,20 @@ router.delete('/users/:id', (req: Request, res: Response) => {
     const { id } = req.params;
 
     if (id === req.user!.id) {
-      return res.status(400).json({ success: false, error: 'Cannot delete your own account' });
+      return fail(res, 400, 'Cannot delete your own account');
     }
 
     const user = db.prepare('SELECT id FROM users WHERE id = ?').get(id);
     if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
+      return fail(res, 404, 'User not found');
     }
 
     // CASCADE will handle related data (goals, api_keys, guestbook, etiquette)
     db.prepare('DELETE FROM users WHERE id = ?').run(id);
 
-    res.json({ success: true, data: { message: 'User deleted successfully' } });
+    ok(res, { message: 'User deleted successfully' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    serverError(res, error);
   }
 });
 

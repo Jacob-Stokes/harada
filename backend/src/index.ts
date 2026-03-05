@@ -28,6 +28,14 @@ app.use(cors({
 app.use(express.json());
 
 // Session middleware
+if (!process.env.SESSION_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    console.warn('WARNING: SESSION_SECRET is not set. This is unsafe in production. Set the SESSION_SECRET environment variable.');
+  } else {
+    console.warn('WARNING: SESSION_SECRET is not set. Using insecure default for development.');
+  }
+}
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'harada-method-secret-change-in-production',
   resave: false,
@@ -52,10 +60,11 @@ app.use('/api/auth', authRouter);
 
 // Root API documentation endpoint for AI agents (optional auth to show user-specific info)
 app.get('/api', optionalAuth, (req, res) => {
+  const username = req.user?.username || 'the authenticated user';
   res.json({
     name: 'Harada Method API',
-    description: 'API for Jacob Stokes\' Harada Method goal tracking system. The Harada Method is a Japanese goal-setting framework using nested 64-square grids.',
-    owner: 'Jacob Stokes',
+    description: `API for ${username}'s Harada Method goal tracking system. The Harada Method is a Japanese goal-setting framework using nested 64-square grids.`,
+    owner: username,
     structure: {
       overview: 'Each user can have multiple primary goals. Each primary goal has 8 sub-goals. Each sub-goal has 8 action items. Progress is tracked via activity logs against action items.',
       data_model: {

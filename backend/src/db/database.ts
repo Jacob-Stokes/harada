@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import { seedDefaultEtiquette } from '../utils/etiquette';
 
 const DB_PATH = process.env.DATABASE_URL?.replace('file:', '') || './data/harada.db';
 
@@ -213,19 +214,7 @@ export function initDatabase() {
   try {
     const users = db.prepare('SELECT id FROM users').all() as any[];
     for (const user of users) {
-      const existing = db.prepare('SELECT COUNT(*) as count FROM agent_etiquette WHERE user_id = ?').get(user.id) as any;
-      if (existing.count === 0) {
-        const defaults = [
-          'Keep the Harada structure (goal → sub-goal → 8 actions) intact.',
-          'Use positive, coaching language when writing updates.',
-          'Ask before deleting goals or sub-goals.',
-          'Surface blockers or ambiguities in the guestbook.',
-        ];
-        const insert = db.prepare('INSERT INTO agent_etiquette (id, user_id, content, position, is_default) VALUES (?, ?, ?, ?, 1)');
-        defaults.forEach((content, i) => {
-          insert.run(crypto.randomUUID(), user.id, content, i);
-        });
-      }
+      seedDefaultEtiquette(user.id);
     }
   } catch (err) {
     console.log('Migration check (agent_etiquette seed):', err);
