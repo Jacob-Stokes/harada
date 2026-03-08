@@ -6,7 +6,7 @@ import FullGridView from '../components/FullGridView';
 import Guestbook from '../components/Guestbook';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { GoalTheme, computeColorsFromTheme } from '../context/DisplaySettingsContext';
+import { GoalTheme, computeColorsFromTheme, DEFAULT_FALLBACK_COLOR } from '../context/DisplaySettingsContext';
 import { lightenColor, getReadableTextColor } from '../utils/color';
 
 interface ActivityLog {
@@ -59,11 +59,16 @@ interface ShareSettings {
   show_guestbook: boolean;
 }
 
-// Default classic palette for shared views
-const DEFAULT_COLORS: Record<number, string> = {
-  1: '#22c55e', 2: '#86efac', 3: '#15803d', 4: '#bbf7d0',
-  5: '#4ade80', 6: '#166534', 7: '#86efac', 8: '#22c55e',
+// Default classic palette for shared views (derived from canonical builtInPalettes)
+const DEFAULT_THEME: GoalTheme = {
+  palette: 'classic',
+  customSubGoalColors: {},
+  inheritActionColors: true,
+  actionShadePercent: 85,
+  centerLayout: 'single',
+  centerBackdrop: 'card',
 };
+const DEFAULT_COLORS = computeColorsFromTheme(DEFAULT_THEME);
 
 export default function SharedGoalView() {
   const { t } = useTranslation();
@@ -259,7 +264,7 @@ export default function SharedGoalView() {
                   );
                 }
 
-                const baseColor = themeColors[pos] || '#22c55e';
+                const baseColor = themeColors[pos] || DEFAULT_FALLBACK_COLOR;
                 const cardBg = lightenColor(baseColor, 70);
                 const textColor = getReadableTextColor(cardBg);
 

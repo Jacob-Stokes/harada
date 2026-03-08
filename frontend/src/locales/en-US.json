@@ -352,7 +352,12 @@
     "tabAccount": "Account",
     "darkMode": "Dark Mode",
     "darkModeDesc": "Switch between light and dark themes.",
-    "enableDarkMode": "Enable dark mode"
+    "enableDarkMode": "Enable dark mode",
+
+    "saveCustomPalette": "Save as Custom Palette",
+    "saveCustomPaletteDesc": "Saves the current 8 colours (including any custom overrides) as a reusable palette.",
+    "paletteName": "Palette name...",
+    "save": "Save"
   },
 
   "account": {

@@ -8,7 +8,7 @@ import remarkGfm from 'remark-gfm';
 import Guestbook from '../components/Guestbook';
 import ShareGoalModal from '../components/ShareGoalModal';
 import ConfirmModal from '../components/ConfirmModal';
-import { useDisplaySettings, GoalTheme, computeColorsFromTheme, extractThemeFromSettings, getAllPalettes } from '../context/DisplaySettingsContext';
+import { useDisplaySettings, GoalTheme, computeColorsFromTheme, extractThemeFromSettings, getAllPalettes, DEFAULT_FALLBACK_COLOR } from '../context/DisplaySettingsContext';
 import { getReadableTextColor, lightenColor } from '../utils/color';
 
 interface ActivityLog {
@@ -137,7 +137,7 @@ export default function GoalGrid() {
 
   useEffect(() => {
     if (goalId) {
-      loadGoal();
+      loadGoal(true);
     }
   }, [goalId]);
 
@@ -146,16 +146,16 @@ export default function GoalGrid() {
   }, [displaySettings.defaultView]);
 
 
-  const loadGoal = async () => {
+  const loadGoal = async (showLoading = false) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const data = await api.getGoal(goalId!);
       setGoal(data);
       setError(null);
     } catch (err) {
       setError((err as Error).message);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -448,7 +448,7 @@ export default function GoalGrid() {
     }
 
     const actionsWithActivity = subGoal.actions.length;
-    const baseColor = effectiveColors[position] || '#22c55e';
+    const baseColor = effectiveColors[position] || DEFAULT_FALLBACK_COLOR;
     const cardBackground = lightenColor(baseColor, 70);
     const textColor = getReadableTextColor(cardBackground);
 
@@ -1255,9 +1255,9 @@ export default function GoalGrid() {
             {/* Custom Sub-Goal Colors */}
             <h3 className="text-sm font-semibold dark:text-gray-200 mb-2">{t('settings.customSubGoalColors')}</h3>
             <div className="grid grid-cols-4 gap-3 mb-6">
-              {Array.from({ length: 8 }, (_, i) => i + 1).map((pos) => {
+              {(() => {
                 const previewColors = computeColorsFromTheme(themeEdit, displaySettings.customPalettes);
-                return (
+                return Array.from({ length: 8 }, (_, i) => i + 1).map((pos) => (
                   <div key={pos} className="flex items-center gap-2">
                     <input
                       type="color"
@@ -1282,8 +1282,8 @@ export default function GoalGrid() {
                       </button>
                     )}
                   </div>
-                );
-              })}
+                ));
+              })()}
             </div>
 
             {/* Action Tile Styling */}

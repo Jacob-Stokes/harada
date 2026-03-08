@@ -18,6 +18,12 @@ const themeStrokes: Record<AppThemeName, string> = {
   academia: '#fffff8',
 };
 
+const GRID_POSITIONS = [
+  [0, 0], [100, 0], [200, 0],
+  [0, 100], [100, 100], [200, 100],
+  [0, 200], [100, 200], [200, 200],
+] as const;
+
 interface LogoGridProps {
   theme?: AppThemeName;
   size?: number;
@@ -28,12 +34,6 @@ export default function LogoGrid({ theme = 'default', size = 64, className }: Lo
   const colors = themeColors[theme] || themeColors.default;
   const stroke = themeStrokes[theme] || themeStrokes.default;
 
-  const positions = [
-    [0, 0], [100, 0], [200, 0],
-    [0, 100], [100, 100], [200, 100],
-    [0, 200], [100, 200], [200, 200],
-  ];
-
   return (
     <svg
       width={size}
@@ -42,7 +42,7 @@ export default function LogoGrid({ theme = 'default', size = 64, className }: Lo
       xmlns="http://www.w3.org/2000/svg"
       className={className ?? 'flex-shrink-0'}
     >
-      {positions.map(([x, y], i) => (
+      {GRID_POSITIONS.map(([x, y], i) => (
         <rect key={i} x={x} y={y} width={100} height={100} fill={colors[i]} stroke={stroke} strokeWidth={2} />
       ))}
     </svg>

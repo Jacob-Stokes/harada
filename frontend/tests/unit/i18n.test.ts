@@ -65,6 +65,14 @@ describe('i18n Configuration', () => {
     }
   });
 
+  it('has custom palette i18n keys in en-US', () => {
+    expect(i18n.t('settings.saveCustomPalette')).toBe('Save as Custom Palette');
+    expect(i18n.t('settings.paletteName')).toBe('Palette name...');
+    expect(i18n.t('settings.saveCustomPaletteDesc')).toContain('8 colours');
+    expect(i18n.t('common.save')).toBe('Save');
+    expect(i18n.t('common.delete')).toBe('Delete');
+  });
+
   it('switches to Japanese and loads translations', async () => {
     await i18n.changeLanguage('ja');
     expect(i18n.language).toBe('ja');
@@ -80,6 +88,15 @@ describe('i18n Configuration', () => {
     expect(i18n.t('goalGrid.addSubGoal', { position: 3 })).toBe('サブ目標3を追加');
     expect(i18n.t('goalGrid.activityHistory', { count: 7 })).toBe('活動履歴（7件）');
     expect(i18n.t('settings.exportedGoals', { count: 5 })).toBe('5件の目標をエクスポートしました。');
+  });
+
+  it('has custom palette i18n keys in Japanese', async () => {
+    await i18n.changeLanguage('ja');
+    expect(i18n.t('settings.saveCustomPalette')).toBe('カスタムパレットとして保存');
+    expect(i18n.t('settings.paletteName')).toBe('パレット名...');
+    expect(i18n.t('settings.saveCustomPaletteDesc')).toContain('8色');
+    expect(i18n.t('common.save')).toBe('保存');
+    expect(i18n.t('common.delete')).toBe('削除');
   });
 
   it('Japanese has all expected top-level namespaces', () => {

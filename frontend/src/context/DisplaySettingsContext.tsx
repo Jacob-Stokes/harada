@@ -47,8 +47,7 @@ export const builtInPalettes: Record<string, PaletteDefinition> = {
   },
 };
 
-// Keep for backward compat — same object
-export const paletteOptions = builtInPalettes;
+export const DEFAULT_FALLBACK_COLOR = '#22c55e';
 
 export interface DisplaySettings {
   defaultView: ViewMode;
@@ -206,7 +205,7 @@ export function DisplaySettingsProvider({ children }: { children: React.ReactNod
   };
 
   const createCustomPalette = (label: string, colors: string[]): string => {
-    const id = 'custom-' + Date.now();
+    const id = 'custom-' + crypto.randomUUID();
     setSettings((prev) => ({
       ...prev,
       customPalettes: { ...prev.customPalettes, [id]: { label, colors } },
@@ -229,14 +228,10 @@ export function DisplaySettingsProvider({ children }: { children: React.ReactNod
     });
   };
 
-  const computedColors = useMemo(() => {
-    const palette = lookupPaletteColors(settings.palette, settings.customPalettes);
-    const mapping: Record<number, string> = {};
-    for (let i = 1; i <= 8; i += 1) {
-      mapping[i] = settings.customSubGoalColors[i] || palette[i - 1] || palette[0];
-    }
-    return mapping;
-  }, [settings.palette, settings.customSubGoalColors, settings.customPalettes]);
+  const computedColors = useMemo(
+    () => computeColorsFromTheme(extractThemeFromSettings(settings), settings.customPalettes),
+    [settings.palette, settings.customSubGoalColors, settings.customPalettes]
+  );
 
   const value: DisplaySettingsContextValue = {
     settings,

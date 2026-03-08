@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { darkenColor, getReadableTextColor, lightenColor } from '../utils/color';
+import { DEFAULT_FALLBACK_COLOR } from '../context/DisplaySettingsContext';
 
 interface ActionItem {
   id: string;
@@ -74,7 +75,7 @@ export default function FullGridView({
   };
 
   const getColorForPosition = (position: number) => {
-    return subGoalColors[position] || '#22c55e';
+    return subGoalColors[position] || DEFAULT_FALLBACK_COLOR;
   };
 
   const allowDrop = (event: React.DragEvent) => {

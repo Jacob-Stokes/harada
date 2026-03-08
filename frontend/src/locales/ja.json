@@ -352,7 +352,12 @@
     "tabAccount": "アカウント",
     "darkMode": "ダークモード",
     "darkModeDesc": "ライトテーマとダークテーマを切り替えます。",
-    "enableDarkMode": "ダークモードを有効にする"
+    "enableDarkMode": "ダークモードを有効にする",
+
+    "saveCustomPalette": "カスタムパレットとして保存",
+    "saveCustomPaletteDesc": "現在の8色（カスタムオーバーライドを含む）を再利用可能なパレットとして保存します。",
+    "paletteName": "パレット名...",
+    "save": "保存"
   },
 
   "account": {

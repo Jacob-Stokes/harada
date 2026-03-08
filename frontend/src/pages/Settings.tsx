@@ -1,10 +1,10 @@
-import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
+import { useState, useEffect, useRef, FormEvent, ChangeEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import ConfirmModal from '../components/ConfirmModal';
 import { API_URL, api } from '../api/client';
-import { useDisplaySettings, getAllPalettes, appThemeOptions, AppThemeName } from '../context/DisplaySettingsContext';
+import { useDisplaySettings, getAllPalettes, appThemeOptions, AppThemeName, DEFAULT_FALLBACK_COLOR } from '../context/DisplaySettingsContext';
 import { lightenColor } from '../utils/color';
 
 interface ApiKey {
@@ -83,7 +83,8 @@ export default function Settings() {
     createCustomPalette,
     deleteCustomPalette,
   } = useDisplaySettings();
-  const previewBaseColor = computedColors[1] || '#22c55e';
+  const customPaletteNameRef = useRef<HTMLInputElement>(null);
+  const previewBaseColor = computedColors[1] || DEFAULT_FALLBACK_COLOR;
   const previewActionColor = lightenColor(previewBaseColor, displaySettings.actionShadePercent);
   const navigate = useNavigate();
   const location = useLocation();
@@ -1169,7 +1170,7 @@ curl -X POST "$API_URL/api/guestbook" \\
                         onClick={() => deleteCustomPalette(name)}
                         className="absolute top-2 right-2 text-xs text-red-500 hover:text-red-700"
                       >
-                        Delete
+                        {t('common.delete')}
                       </button>
                     )}
                   </div>
@@ -1177,32 +1178,31 @@ curl -X POST "$API_URL/api/guestbook" \\
               </div>
               {/* Save Custom Palette */}
               <div className="mt-4 border rounded-lg p-4 border-dashed border-gray-300 dark:border-gray-600">
-                <h4 className="text-sm font-semibold mb-2">Save as Custom Palette</h4>
+                <h4 className="text-sm font-semibold mb-2">{t('settings.saveCustomPalette')}</h4>
                 <div className="flex gap-2 items-end">
                   <div className="flex-1">
                     <input
                       type="text"
-                      placeholder="Palette name..."
-                      id="custom-palette-name"
+                      placeholder={t('settings.paletteName')}
+                      ref={customPaletteNameRef}
                       className="w-full border rounded px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                     />
                   </div>
                   <button
                     onClick={() => {
-                      const input = document.getElementById('custom-palette-name') as HTMLInputElement;
-                      const label = input?.value.trim();
+                      const label = customPaletteNameRef.current?.value.trim();
                       if (!label) return;
-                      const colors = Array.from({ length: 8 }, (_, i) => computedColors[i + 1] || '#22c55e');
+                      const colors = Array.from({ length: 8 }, (_, i) => computedColors[i + 1] || DEFAULT_FALLBACK_COLOR);
                       createCustomPalette(label, colors);
-                      input.value = '';
+                      if (customPaletteNameRef.current) customPaletteNameRef.current.value = '';
                     }}
                     className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
                   >
-                    Save
+                    {t('settings.save')}
                   </button>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Saves the current 8 colors (including any custom overrides) as a reusable palette.
+                  {t('settings.saveCustomPaletteDesc')}
                 </p>
               </div>
             </section>
