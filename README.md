@@ -1,4 +1,4 @@
-<div align="center">
+<div align="left">
   <img src="frontend/public/logo.svg?v=2" alt="Xharada logo" width="120" height="120">
   <h1>Xharada</h1>
 </div>
