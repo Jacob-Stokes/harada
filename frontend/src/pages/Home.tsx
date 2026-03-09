@@ -101,10 +101,10 @@ export default function Home() {
 
   const getAgentLandingUrl = (format?: 'json') => {
     if (!pastedApiKey.trim()) return '';
-    if (format === 'json') {
-      return `${API_URL}/api/agents/brief?apiKey=${encodeURIComponent(pastedApiKey)}`;
-    }
     const baseUrl = window.location.origin;
+    if (format === 'json') {
+      return `${baseUrl}/api/agents/brief?apiKey=${encodeURIComponent(pastedApiKey)}`;
+    }
     return `${baseUrl}/agents?apiKey=${encodeURIComponent(pastedApiKey)}`;
   };
 
